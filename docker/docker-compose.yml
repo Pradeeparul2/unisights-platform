@@ -15,14 +15,15 @@ services:
     ports:
       - "8080:8080"
     command: ["serve", "-s", "dist", "-l", "8080", "--cors"]
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - unisights-network
 
   kafka:
     image: docker.io/bitnami/kafka:4.0
     container_name: kafka
-    ports:
-      - "9094:9094"
     env_file: *env_file
     environment:
       # KRaft settings

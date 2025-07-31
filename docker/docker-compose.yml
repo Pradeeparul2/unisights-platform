@@ -18,6 +18,49 @@ services:
     networks:
       - unisights-network
 
+  kafka:
+    image: docker.io/bitnami/kafka:4.0
+    container_name: kafka
+    ports:
+      - "9094:9094"
+    env_file: *env_file
+    environment:
+      # KRaft settings
+      - KAFKA_CFG_NODE_ID=${KAFKA_NODE_ID:-0}
+      - KAFKA_CFG_PROCESS_ROLES=${KAFKA_PROCESS_ROLES:-broker,controller}
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS:-0@kafka:9093}
+      # Listeners
+      - KAFKA_CFG_LISTENERS=${KAFKA_LISTENERS}
+      - KAFKA_CFG_ADVERTISED_LISTENERS=${KAFKA_ADVERTISED_LISTENERS}
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=${KAFKA_CONTROLLER_LISTENER_NAMES:-CONTROLLER}
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=${KAFKA_INTER_BROKER_LISTENER_NAME:-PLAINTEXT}
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=${KAFKA_AUTO_CREATE_TOPICS_ENABLE:-true}
+    healthcheck:
+      test:
+        ["CMD", "kafka-topics.sh", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - unisights-network
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    container_name: kafdrop
+    ports:
+      - "9000:9000"
+    env_file: *env_file
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+      SERVER_PORT: ${KFFDROP_SERVER_PORT:-9000}
+      JVM_OPTS: ${KFFDROP_JVM_OPTS:-"-Xms32m -Xmx64m"}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - unisights-network
+
 networks:
   unisights-network:
     driver: bridge

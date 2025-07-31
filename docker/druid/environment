@@ -31,34 +31,34 @@ druid_extensions_loadList=["druid-kafka-indexing-service","druid-histogram", "dr
 
 druid_zk_service_host=zookeeper
 
-druid_metadata_storage_host=
-druid_metadata_storage_type=postgresql
-druid_metadata_storage_connector_connectURI=jdbc:postgresql://postgres:5432/druid
-druid_metadata_storage_connector_user=druid
-druid_metadata_storage_connector_password=FoolishPassword
+# druid_metadata_storage_host=
+# druid_metadata_storage_type=postgresql
+# druid_metadata_storage_connector_connectURI=jdbc:postgresql://postgres:5432/druid
+# druid_metadata_storage_connector_user=druid
+# druid_metadata_storage_connector_password=FoolishPassword
 
 druid_indexer_runner_javaOptsArray=["-server", "-Xmx1g", "-Xms1g", "-XX:MaxDirectMemorySize=3g", "-Duser.timezone=UTC", "-Dfile.encoding=UTF-8", "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"]
 druid_indexer_fork_property_druid_processing_buffer_sizeBytes=256MiB
 
 # S3 deep storage configuration using MinIO
-druid_storage_type=s3
-druid_storage_bucket=druid-segments
-druid_storage_baseKey=druid/segments
-druid_storage_disableAcl=true
-druid_s3_endpoint_url=http://minio:9000
-druid_s3_pathStyleAccess=true
-druid_s3_accessKey=minioadmin
-druid_s3_secretKey=minioadmin
+# druid_storage_type=s3
+# druid_storage_bucket=druid-segments
+# druid_storage_baseKey=druid/segments
+# druid_storage_disableAcl=true
+# druid_s3_endpoint_url=http://minio:9000
+# druid_s3_pathStyleAccess=true
+# druid_s3_accessKey=minioadmin
+# druid_s3_secretKey=minioadmin
 
 # (Optional) Store task logs in MinIO too
-druid.indexer.logs.type=s3
-druid.indexer.logs.bucket=druid-segments
-druid_indexer_logs_baseKey=druid/segments/indexing-logs
+# druid.indexer.logs.type=s3
+# druid.indexer.logs.bucket=druid-segments
+# druid_indexer_logs_baseKey=druid/segments/indexing-logs
 
-# druid_storage_type=local
-# druid_storage_storageDirectory=/opt/shared/segments
+druid_storage_type=local
+druid_storage_storageDirectory=/opt/shared/segments
 druid_indexer_logs_type=file
-# druid_indexer_logs_directory=/opt/shared/indexing-logs
+druid_indexer_logs_directory=/opt/shared/indexing-logs
 
 druid_processing_numThreads=2
 druid_processing_numMergeBuffers=2

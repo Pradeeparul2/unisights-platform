@@ -55,10 +55,10 @@ COPY --from=builder /app/dist ./dist
 RUN npm install -g serve
 
 # Expose port for serving
-EXPOSE 8080
+EXPOSE 9005
 
 # Clean up unnecessary files to optimize image
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Serve the dist folder
-CMD ["serve", "-s", "dist", "-l", "8080", "--cors"]
+CMD ["serve", "-s", "dist", "-l", "9005", "--cors"]

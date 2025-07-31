@@ -1,0 +1,23 @@
+x-env-file: &env_file
+  - .env
+
+services:
+  sdk-service:
+    container_name: unisights-sdk
+    build:
+      context: ../client-sdk/.
+      args:
+        INSIGHTS_ENDPOINT: ${INSIGHTS_ENDPOINT}
+        INSIGHTS_SECRET: ${INSIGHTS_SECRET}
+        INSIGHTS_SALT: ${INSIGHTS_SALT}
+        INSIGHTS_DEBUG: ${INSIGHTS_DEBUG}
+    env_file: *env_file
+    ports:
+      - "8080:8080"
+    command: ["serve", "-s", "dist", "-l", "8080", "--cors"]
+    networks:
+      - unisights-network
+
+networks:
+  unisights-network:
+    driver: bridge

@@ -5,9 +5,10 @@ services:
   sdk-service:
     container_name: unisights-sdk
     build:
-      context: ../client-sdk/.
+      context: ../client-sdk
+      dockerfile: Dockerfile
       args:
-        INSIGHTS_ENDPOINT: ${INSIGHTS_ENDPOINT}
+        INSIGHTS_ENDPOINT: http://localhost:8000/collect/events
         INSIGHTS_SECRET: ${INSIGHTS_SECRET}
         INSIGHTS_SALT: ${INSIGHTS_SALT}
         INSIGHTS_DEBUG: ${INSIGHTS_DEBUG}
@@ -16,7 +17,7 @@ services:
       - "8080:8080"
     command: ["serve", "-s", "dist", "-l", "8080", "--cors"]
     depends_on:
-      kafka:
+      ingestion-service:
         condition: service_healthy
     networks:
       - unisights-network
@@ -59,6 +60,34 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    networks:
+      - unisights-network
+
+  ingestion-service:
+    container_name: ingestion-service
+    build:
+      context: ../ingestion-service
+      dockerfile: Dockerfile
+    env_file: *env_file
+    ports:
+      - "8000:8000"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      GEOIP_DB_PATH: /app/geo/GeoLite2-City.mmdb
+      PORT: 8000
+      ENCRYPTION_PASSPHRASE: ${INSIGHTS_SECRET}
+      ENCRYPTION_SALT: ${INSIGHTS_SALT}
+      EVENT_TOPIC: ${INGESTION_EVENT_TOPIC:-events-stream}
+      SESSION_TOPIC: ${INGESTION_SESSION_TOPIC:-sessions-stream}
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://ingestion-service:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
     networks:
       - unisights-network
 

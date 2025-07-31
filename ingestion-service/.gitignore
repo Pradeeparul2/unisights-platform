@@ -1,0 +1,6 @@
+venv
+.env
+geo
+__pycache__
+minio-data/*
+.minio*

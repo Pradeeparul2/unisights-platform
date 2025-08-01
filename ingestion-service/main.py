@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from cipher import decrypt_payload
+from kafka_setup import create_topic
 
 from dotenv import load_dotenv
 
@@ -60,8 +61,11 @@ async def lifespan(app: FastAPI):
                 linger_ms=10
             )
 
-            # ✅ Send a test message
-            kafka_producer.send("startup_check", value={"status": "init"}).get(timeout=5)
+            # Create event topic if it doesn't exist
+            create_topic(os.getenv("EVENT_TOPIC"), 1, 1)
+
+            # Create stream topic if it doesn't exist
+            create_topic(os.getenv("SESSION_TOPIC"), 1, 1)
 
             producer_ready = True
             logger.info(f"Kafka producer initialized on attempt {attempt + 1}")

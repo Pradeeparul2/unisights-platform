@@ -316,6 +316,23 @@ services:
     networks:
       - unisights-network
 
+  # supervisor-deployer:
+  #   image: curlimages/curl
+  #   container_name: supervisor-deployer
+  #   user: root
+  #   volumes:
+  #     - ./druid/supervisor_specs:/supervisor_specs
+  #   command: ["sh", "-c", "tail -f /dev/null"]
+  #   depends_on:
+  #     coordinator:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #     ingestion-service:
+  #       condition: service_healthy
+  #   networks:
+  #     - unisights-network
+
   # db:
   #   image: postgres:16
   #   container_name: superset_db

@@ -1,0 +1,113 @@
+{
+  "type": "kafka",
+  "spec": {
+    "ioConfig": {
+      "type": "kafka",
+      "consumerProperties": {
+        "bootstrap.servers": "kafka:9092"
+      },
+      "topic": "events-stream",
+      "inputFormat": {
+        "type": "json"
+      },
+      "useEarliestOffset": true,
+      "taskCount": 1
+    },
+    "tuningConfig": {
+      "type": "kafka",
+      "maxRowsPerSegment": 500000,
+      "intermediatePersistPeriod": "PT10M",
+      "logParseExceptions": true,
+      "maxParseExceptions": 1000,
+      "maxSavedParseExceptions": 10
+    },
+    "dataSchema": {
+      "dataSource": "events_stream_data",
+      "timestampSpec": {
+        "column": "received_at",
+        "format": "millis"
+      },
+      "transformSpec": {
+        "transforms": [
+          {
+            "type": "expression",
+            "name": "event_name",
+            "expression": "nvl(json_value(event_data, '$.name'), event_type)"
+          }
+        ]
+      },
+      "dimensionsSpec": {
+        "dimensions": [
+          "event_type",
+          "event_name",
+          "event_data",
+          "event_timestamp",
+          "asset_id",
+          "session_id",
+          "page_url",
+          "entry_page",
+          "exit_page",
+          "device_type",
+          "os",
+          "platform",
+          "screen_width",
+          "screen_height",
+          "ip",
+          "geo_country",
+          "geo_city",
+          "geo_lat",
+          "geo_lon",
+          "user_agent"
+        ]
+      },
+      "metricsSpec": [
+        {
+          "type": "count",
+          "name": "event_count"
+        },
+        {
+          "type": "doubleSum",
+          "name": "scroll_depth",
+          "fieldName": "scroll_depth"
+        },
+        {
+          "type": "doubleSum",
+          "name": "time_on_page",
+          "fieldName": "time_on_page"
+        }
+      ],
+      "granularitySpec": {
+        "type": "hashed",
+        "segmentGranularity": "hour",
+        "queryGranularity": "minute",
+        "rollup": true,
+        "partitionDimensions": ["asset_id"]
+      },
+      "flattenSpec": {
+        "useFieldDiscovery": true,
+        "fields": [
+          {
+            "type": "path",
+            "name": "geo_country",
+            "expr": "$.geo.country"
+          },
+          {
+            "type": "path",
+            "name": "geo_city",
+            "expr": "$.geo.city"
+          },
+          {
+            "type": "path",
+            "name": "geo_lat",
+            "expr": "$.geo.lat"
+          },
+          {
+            "type": "path",
+            "name": "geo_lon",
+            "expr": "$.geo.lon"
+          }
+        ]
+      }
+    }
+  }
+}

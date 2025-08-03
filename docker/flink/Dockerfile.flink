@@ -1,0 +1,28 @@
+# Use official Flink 1.20.0 base image
+FROM flink:1.20.0-scala_2.12-java11
+
+USER root
+
+# Install Python, pip, and dependencies
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip python3-dev build-essential && \
+    pip3 install --upgrade pip && \
+    pip3 install apache-flink==1.20.0 kafka-python && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -s /usr/bin/python3 /usr/bin/python
+
+# Download and add Kafka connector and Kafka clients JARs
+RUN wget -q -O /opt/flink/lib/flink-connector-kafka-3.3.0-1.20.jar \
+    https://repo1.maven.org/maven2/org/apache/flink/flink-connector-kafka/3.3.0-1.20/flink-connector-kafka-3.3.0-1.20.jar && \
+    wget -q -O /opt/flink/lib/kafka-clients-3.3.0.jar \
+    https://repo1.maven.org/maven2/org/apache/kafka/kafka-clients/3.3.0/kafka-clients-3.3.0.jar
+
+# Create jobs directory and copy job
+RUN mkdir -p /opt/flink/jobs && chown -R flink:flink /opt/flink/jobs
+COPY session_aggregator.py /opt/flink/jobs/session_aggregator.py
+
+# Patch flink script to remove invalid --add-exports
+RUN sed -i 's/--add-exports=jdk.compiler\/com.sun.tools.javac.code=ALL-UNNAMED//g' /opt/flink/bin/flink
+
+USER flink

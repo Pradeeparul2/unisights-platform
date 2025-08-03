@@ -316,6 +316,63 @@ services:
     networks:
       - unisights-network
 
+  # Flink will be enabled in the future if needed
+  # flink-jobmanager:
+  #   build:
+  #     context: ./flink
+  #     dockerfile: Dockerfile.flink
+  #   container_name: flink-jobmanager
+  #   ports:
+  #     - "8089:8081"
+  #   command: jobmanager
+  #   volumes:
+  #     - ./flink/session_aggregator.py:/opt/flink/jobs/session_aggregator.py
+  #   environment:
+  #     - JOB_MANAGER_RPC_ADDRESS=flink-jobmanager
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8081"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   networks:
+  #     - unisights-network
+
+  # flink-taskmanager:
+  #   build:
+  #     context: ./flink
+  #     dockerfile: Dockerfile.flink
+  #   container_name: flink-taskmanager
+  #   depends_on:
+  #     flink-jobmanager:
+  #       condition: service_healthy
+  #   command: taskmanager
+  #   environment:
+  #     - JOB_MANAGER_RPC_ADDRESS=flink-jobmanager
+  #   networks:
+  #     - unisights-network
+  # flink-submitter:
+  #   build:
+  #     context: ./flink
+  #     dockerfile: Dockerfile.flink
+  #   container_name: flink-submitter
+  #   depends_on:
+  #     flink-jobmanager:
+  #       condition: service_healthy
+  #   command: >
+  #     bash -c "sleep 10 && /opt/flink/bin/flink run -py /opt/flink/jobs/session_aggregator.py && tail -f /dev/null"
+  #   networks:
+  #     - unisights-network
+  #   # volumes:
+  #   #   - ./flink/jobs:/opt/flink/jobs
+  #   environment:
+  #     - FLINK_HOME=/opt/flink
+  #     - PYTHONPATH=/opt/flink/jobs
+  #     - "FLINK_PROPERTIES=jobmanager.rpc.address:flink-jobmanager"
+
   # supervisor-deployer:
   #   image: curlimages/curl
   #   container_name: supervisor-deployer

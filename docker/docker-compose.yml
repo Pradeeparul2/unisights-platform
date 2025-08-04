@@ -316,6 +316,26 @@ services:
     networks:
       - unisights-network
 
+  supervisor-deployer:
+    image: curlimages/curl
+    container_name: supervisor-deployer
+    user: root
+    volumes:
+      - ./druid/supervisor_specs:/supervisor_specs
+      - ./druid/submit_supervisor_specs.sh:/submit_supervisor_specs.sh
+    command: ["sh", "/submit_supervisor_specs.sh"]
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ingestion-service:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+    networks:
+      - unisights-network
+
   # Flink will be enabled in the future if needed
   # flink-jobmanager:
   #   build:
@@ -372,23 +392,6 @@ services:
   #     - FLINK_HOME=/opt/flink
   #     - PYTHONPATH=/opt/flink/jobs
   #     - "FLINK_PROPERTIES=jobmanager.rpc.address:flink-jobmanager"
-
-  # supervisor-deployer:
-  #   image: curlimages/curl
-  #   container_name: supervisor-deployer
-  #   user: root
-  #   volumes:
-  #     - ./druid/supervisor_specs:/supervisor_specs
-  #   command: ["sh", "-c", "tail -f /dev/null"]
-  #   depends_on:
-  #     coordinator:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #     ingestion-service:
-  #       condition: service_healthy
-  #   networks:
-  #     - unisights-network
 
   # db:
   #   image: postgres:16

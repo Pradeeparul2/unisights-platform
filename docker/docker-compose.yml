@@ -431,18 +431,14 @@ services:
         condition: service_healthy
     volumes:
       - superset_home:/app/superset_home
+      - ./superset/init-superset.sh:/app/init-superset.sh
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8088/health"]
       interval: 30s
       timeout: 10s
       retries: 3
     command: >
-      sh -c "
-        pip install pydruid pillow 'setuptools<81' &&
-        superset db upgrade &&
-        superset init &&
-        gunicorn -w 4 --timeout 120 -b 0.0.0.0:8088 'superset.app:create_app()'
-      "
+      sh -c "/app/init-superset.sh"
     networks:
       - unisights-network
 

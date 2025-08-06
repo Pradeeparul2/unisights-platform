@@ -40,25 +40,40 @@ druid_zk_service_host=zookeeper
 druid_indexer_runner_javaOptsArray=["-server", "-Xmx1g", "-Xms1g", "-XX:MaxDirectMemorySize=3g", "-Duser.timezone=UTC", "-Dfile.encoding=UTF-8", "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"]
 druid_indexer_fork_property_druid_processing_buffer_sizeBytes=256MiB
 
-# S3 deep storage configuration using MinIO
-# druid_storage_type=s3
-# druid_storage_bucket=druid-segments
-# druid_storage_baseKey=druid/segments
-# druid_storage_disableAcl=true
-# druid_s3_endpoint_url=http://minio:9000
-# druid_s3_pathStyleAccess=true
-# druid_s3_accessKey=minioadmin
-# druid_s3_secretKey=minioadmin
+# S3 Deep Storage (MinIO)
+druid_storage_type=s3
+druid_storage_bucket=druid-segments
+druid_storage_baseKey=druid/segments
+druid_s3_accessKey=minioadmin
+druid_s3_secretKey=minioadmin
+druid_s3_endpoint_url=http://minio:9000
+druid_s3_protocol=http
+druid_storage_disableAcl=true
+druid_s3_enablePathStyleAccess=true
+druid_s3_forceGlobalBucketAccessEnabled=false
+# Indexer Logs (File-based)
+# druid.indexer.logs.type=file
+# druid.indexer.logs.directory=/opt/shared/indexing-logs
 
 # (Optional) Store task logs in MinIO too
-# druid.indexer.logs.type=s3
-# druid.indexer.logs.bucket=druid-segments
-# druid_indexer_logs_baseKey=druid/segments/indexing-logs
+druid_indexer_logs_type=s3
+druid_indexer_logs_s3Bucket=druid-segments
+druid_indexer_logs_s3Prefix=druid/stage/indexing-logs
+druid_indexer_logs_disableAcl=true
 
-druid_storage_type=local
-druid_storage_storageDirectory=/opt/shared/segments
-druid_indexer_logs_type=file
-druid_indexer_logs_directory=/opt/shared/indexing-logs
+
+# SQL-Based Ingestion (for granularitySpec)
+druid_msq_intermediate_storage_enable=true
+druid_msq_intermediate_storage_type=s3
+druid_msq_intermediate_storage_bucket=druid-segments
+druid_msq_intermediate_storage_prefix=druid/intermediate
+druid_msq_intermediate_storage_tempDir=/tmp/druid-msq
+
+# Logging
+druid_emitter_logging_logLevel=debug
+log4j_logger_com_google_inject=DEBUG
+log4j_logger_org_apache_druid_storage_s3=DEBUG
+log4j_logger_org_apache_druid_indexing_overlord=DEBUG
 
 druid_processing_numThreads=2
 druid_processing_numMergeBuffers=2

@@ -305,6 +305,7 @@ services:
       - "9001:9001"
     volumes:
       - minio-data:/data
+    env_file: *env_file
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -393,23 +394,6 @@ services:
   #     - FLINK_HOME=/opt/flink
   #     - PYTHONPATH=/opt/flink/jobs
   #     - "FLINK_PROPERTIES=jobmanager.rpc.address:flink-jobmanager"
-
-  # db:
-  #   image: postgres:16
-  #   container_name: superset_db
-  #   environment:
-  #     - POSTGRES_DB=superset
-  #     - POSTGRES_USER=superset
-  #     - POSTGRES_PASSWORD=${SUPERSET_POSTGRES_PASSWORD:-FoolishPassword}
-  #   volumes:
-  #     - db_data:/var/lib/postgresql/data
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U superset"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - unisights-network
 
   superset:
     image: apache/superset:latest

@@ -186,6 +186,12 @@ impl Tracker {
         self.device_info = device_info;
     }
 
+    // New method to update page_url
+    #[wasm_bindgen(js_name = setPageUrl)]
+    pub fn set_page_url(&mut self, page_url: String) {
+        self.page_url = Some(page_url);
+    }
+
     #[wasm_bindgen(js_name = exportEncryptedPayload)]
     pub fn export_encrypted_payload(&self) -> Result<JsValue, JsValue> {
         let payload = FullAnalyticsPayload {

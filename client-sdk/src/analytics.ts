@@ -125,6 +125,7 @@ function getDeviceInfo(): DeviceData {
 
 let isInitialized = false;
 let flushTimer: number | undefined = undefined;
+let currentPageUrl = location.href; // Track current page URL
 
 async function initAnalytics(
   userConfig: Partial<AnalyticsConfig> = {}
@@ -207,12 +208,56 @@ async function initAnalytics(
     pending = true;
   }
 
+  // Handle SPA navigation
+  const handleNavigation = () => {
+    const newUrl = location.href;
+    if (newUrl !== currentPageUrl) {
+      // Flush pending events for the current page
+      if (pending) {
+        sendAnalytics(tracker, config);
+        pending = false;
+      }
+      // Update page URL
+      currentPageUrl = newUrl;
+      // Assuming wasm.Tracker has a method to update page URL, e.g., setPageUrl
+      // If not, you may need to extend the WASM module or reset session info
+      tracker.setSessionInfo(
+        config.insightsId,
+        sessionId,
+        currentPageUrl,
+        getUTMParams(),
+        getDeviceInfo()
+      );
+      // Log new page view
+      if (config.trackPageViews) {
+        tracker.logPageView(currentPageUrl);
+        if (config.debug)
+          console.log("[Insights] - Page view event:", currentPageUrl);
+        pending = true;
+      }
+    }
+  };
+
+  // Listen for SPA navigation events
+  window.addEventListener("popstate", handleNavigation);
+  // Optionally, use history.pushState/replaceState override for SPAs
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+  history.pushState = function (...args) {
+    originalPushState.apply(this, args);
+    handleNavigation();
+  };
+  history.replaceState = function (...args) {
+    originalReplaceState.apply(this, args);
+    handleNavigation();
+  };
+
   const pagehideHandler = () => {
-    tracker.logExitPage(location.href);
+    tracker.logExitPage(currentPageUrl);
     if (config.debug)
       console.log(
         "[Insights] - Exit page (via pagehide) event:",
-        location.href
+        currentPageUrl
       );
     sendAnalytics(tracker, config, true);
     pending = false;

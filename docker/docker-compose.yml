@@ -413,9 +413,12 @@ services:
         condition: service_healthy
       coordinator:
         condition: service_healthy
+      broker:
+        condition: service_healthy
     volumes:
       - superset_home:/app/superset_home
       - ./superset/init-superset.sh:/app/init-superset.sh
+      - ./superset/main_dashboard.zip:/app/main_dashboard.zip
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8088/health"]
       interval: 30s

@@ -111,10 +111,9 @@ services:
     volumes:
       - metadata_data:/var/lib/postgresql/data # Shared volume
       - ./postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-      # - db_data:/var/lib/postgresql/data # Additional volume for Superset
     environment:
-      - POSTGRES_PASSWORD=FoolishPassword # Root password for PostgreSQL
-      - POSTGRES_USER=postgres # Default superuser
+      - POSTGRES_PASSWORD=${DRUID_POSTGRES_PASSWORD:-FoolishPassword} # Root password for PostgreSQL
+      - POSTGRES_USER=${DRUID_POSTGRES_USER:-postgres} # Default superuser
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -154,11 +153,6 @@ services:
       - "8081:8081"
     command:
       - coordinator
-    environment:
-      - DRUID_METADATA_STORAGE_TYPE=postgresql
-      - DRUID_METADATA_STORAGE_CONNECT_URI=jdbc:postgresql://postgres:5432/druid
-      - DRUID_METADATA_STORAGE_USERNAME=postgres
-      - DRUID_METADATA_STORAGE_PASSWORD=FoolishPassword
     env_file:
       - druid/environment
     healthcheck:
@@ -185,11 +179,6 @@ services:
       - "8082:8082"
     command:
       - broker
-    environment:
-      - DRUID_METADATA_STORAGE_TYPE=postgresql
-      - DRUID_METADATA_STORAGE_CONNECT_URI=jdbc:postgresql://postgres:5432/druid
-      - DRUID_METADATA_STORAGE_USERNAME=postgres
-      - DRUID_METADATA_STORAGE_PASSWORD=FoolishPassword
     env_file:
       - druid/environment
     healthcheck:
@@ -216,11 +205,6 @@ services:
       - "8083:8083"
     command:
       - historical
-    environment:
-      - DRUID_METADATA_STORAGE_TYPE=postgresql
-      - DRUID_METADATA_STORAGE_CONNECT_URI=jdbc:postgresql://postgres:5432/druid
-      - DRUID_METADATA_STORAGE_USERNAME=postgres
-      - DRUID_METADATA_STORAGE_PASSWORD=FoolishPassword
     env_file:
       - druid/environment
     healthcheck:
@@ -247,11 +231,6 @@ services:
       - "8091:8091"
     command:
       - middleManager
-    environment:
-      - DRUID_METADATA_STORAGE_TYPE=postgresql
-      - DRUID_METADATA_STORAGE_CONNECT_URI=jdbc:postgresql://postgres:5432/druid
-      - DRUID_METADATA_STORAGE_USERNAME=postgres
-      - DRUID_METADATA_STORAGE_PASSWORD=FoolishPassword
     env_file:
       - druid/environment
     healthcheck:
@@ -286,11 +265,6 @@ services:
       - "8888:8888"
     command:
       - router
-    environment:
-      - DRUID_METADATA_STORAGE_TYPE=postgresql
-      - DRUID_METADATA_STORAGE_CONNECT_URI=jdbc:postgresql://postgres:5432/druid
-      - DRUID_METADATA_STORAGE_USERNAME=postgres
-      - DRUID_METADATA_STORAGE_PASSWORD=FoolishPassword
     env_file:
       - druid/environment
     healthcheck:

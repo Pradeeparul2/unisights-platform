@@ -83,9 +83,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      KAFKA_BROKERS: kafka:9092
+      KAFKA_BROKERS: ${INGESTION_KAFKA_BROKERS:-kafka:9092}
       GEOIP_DB_PATH: /app/geo/GeoLite2-City.mmdb
-      PORT: 8000
+      PORT: ${INGESTION_SERVICE_PORT:-8000}
       ENCRYPTION_PASSPHRASE: ${INSIGHTS_SECRET}
       ENCRYPTION_SALT: ${INSIGHTS_SALT}
       EVENT_TOPIC: ${INGESTION_EVENT_TOPIC:-events-stream}

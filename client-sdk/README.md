@@ -1,216 +1,119 @@
-# Insights JavaScript Analytics SDK
+# Unisights Client SDK
 
-This is the JavaScript SDK for the WebAssembly-based analytics tracker built with Rust. It enables lightweight, privacy-respecting user behavior tracking directly in the browser.
+Welcome to the **Unisights Client SDK**, the heart of the Unisights real-time analytics platform! This folder contains the WebAssembly (WASM)-powered tracking SDK, built with Rust and TypeScript, designed to efficiently and securely capture user interactions on your website or application. The SDK is lightweight, privacy-focused, and easy to integrate, enabling real-time event tracking with minimal performance impact.
 
-## 📦 Features
+## 🌟 Purpose
 
-- Track:
-  - Page Views
-  - Clicks
-  - Scroll Depth
-  - Time on Page
-  - Web Vitals (CLS, FCP, LCP, INP, TTFB)
-  - Custom Events
-- UTM parameter capture
-- Device and session tracking
-- AES-GCM 256-bit encrypted payloads
-- Background data flush via `navigator.sendBeacon`
+The Unisights Client SDK collects events (e.g., page views, clicks, custom actions) directly in the browser using WASM for speed and efficiency. It encrypts data in-browser before sending it to your Unisights ingestion service, ensuring privacy and compliance with regulations like GDPR. This SDK powers the client-side tracking for the Unisights platform, feeding data into Apache Kafka and Druid for real-time analytics.
 
----
+## 📦 Folder Structure
 
-## 🚀 Usage
+```
+client-sdk/
+├── core/                 # Rust WASM core logic (compiled to analytics-bundle.min.js)
+├── src/                  # TypeScript wrapper and utilities
+├── package.json          # Node.js configuration for building
+├── tsconfig.json         # TypeScript configuration
+└── README.md             # You are here
+```
 
-### 1. Include SDK Script in Your HTML
+- **`core/`**: Contains the Rust source code compiled to WASM, providing the high-performance event collection logic.
+- **`src/`**: Includes TypeScript files that wrap the WASM module and expose a simple JavaScript API for developers.
+
+## 🚀 Getting Started
+
+### 1️⃣ Prerequisites
+
+- **Node.js** (>= 16.x) with npm
+- **Rust** (for building or modifying the WASM core)
+- **WasmPack** (install with `cargo install wasm-pack` for development)
+
+### 2️⃣ Install Dependencies
+
+Navigate to the `client-sdk` folder and install dependencies:
+
+```bash
+npm install
+```
+
+### 3️⃣ Build the SDK
+
+Compile the Rust WASM code and bundle it with TypeScript:
+
+```bash
+npm run build
+```
+
+This generates `analytics-bundle.min.js` in the `dist/` folder (or configure the output path as needed), ready for deployment.
+
+### 4️⃣ Integrate into Your HTML
+
+Inject the SDK into your website by adding the following `<script>` tag to your HTML file. Replace `your-insights-id` with your unique Unisights API key and adjust the `src` URL to point to your hosted SDK file (e.g., a CDN or local server):
 
 ```html
-<script
-  src="https://yourcdn.com/analytics.js"
-  data-insights-id="your-site-id"
-  data-analytics-config='{
-    "endpoint": "https://your-server.com/analytics",
-    "flushIntervalMs": 10000,
-    "debug": false
-  }'
-  defer
-></script>
-
 <script
   type="module"
   id="unisights-script"
   defer
   data-insights-id="your-insights-id"
-  src="http://localhost:8080/analytics-bundle.min.js"
+  src="http://localhost:9005/analytics-bundle.min.js"
 ></script>
 ```
 
-> The script will automatically initialize once loaded and send periodic batched analytics to the endpoint.
+- **`type="module"`**: Ensures the SDK loads as an ES module.
+- **`id="unisights-script"`**: A unique identifier for the script tag.
+- **`defer`**: Loads the script asynchronously without blocking HTML parsing.
+- **`data-insights-id`**: Your Unisights API key for identifying the data source.
+- **`src`**: Path to the compiled `analytics-bundle.min.js` file.
 
----
+### 5️⃣ Usage
 
-## 🛠 Setup Locally
+Once loaded, the SDK is available globally as `unisights`. You can track events like this:
 
-### 1. Install
+```html
+<script>
+  // Initialize the SDK (optional, auto-runs with data-insights-id)
+  unisights.init({ apiKey: "your-insights-id" });
 
-```bash
-pnpm install
+  // Track a custom event
+  unisights.track("page_view", {
+    path: window.location.pathname,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Track a click event
+  document.querySelector("button").addEventListener("click", () => {
+    unisights.track("button_click", { element: "submit-btn" });
+  });
+</script>
 ```
 
-### 2. Build Rust → WebAssembly
+- **`init()`**: Configures the SDK with your API key (optional if set in `data-insights-id`).
+- **`track(eventName, data)`**: Sends an event with a name and optional metadata to the Unisights ingestion service.
 
-```bash
-cd rust-wasm
-wasm-pack build --target web
-```
+## 🛠 Development
 
-The output will be placed in `pkg/`.
+### Modify the WASM Core
 
-### 3. Run Dev
+- Edit Rust files in `core/`.
+- Rebuild with `npm run build` to regenerate `analytics-bundle.min.js`.
 
-```bash
-pnpm run dev
-```
+### Test Locally
 
-Or bundle with Vite/Next.js and deploy the SDK.
+- Serve the `dist/` folder with a local server (e.g., `npx serve dist` or use `http://localhost:9005`).
+- Open your HTML file in a browser and check the console for errors or use network tools to verify event transmission.
 
----
+## ✨ Why This SDK Stands Out
 
-## 🧠 API Reference
+- **WASM Performance**: Rust-compiled WASM offers faster execution and lower overhead than traditional JavaScript trackers.
+- **Privacy-Focused**: In-browser encryption protects user data before it leaves the client.
+- **Lightweight**: Minimal impact on page load times, ideal for high-traffic sites.
+- **Extensible**: Easy to add custom events or integrate with your analytics workflow.
 
-### `window.AnalyticsSDK.init(config?)`
+## 🌟 Support the Project
 
-Manually initialize the SDK. Usually auto-loaded by the script.
+If you find the Unisights Client SDK useful, give the main Unisights repository a ⭐ on GitHub at [https://github.com/<your-username>/unisights](https://github.com/<your-username>/unisights). Share it with your network or suggest improvements via GitHub Issues. More contributors will help us enhance this SDK!
 
-```ts
-await window.AnalyticsSDK.init({
-  endpoint: "/analytics",
-  flushIntervalMs: 15000,
-  debug: true,
-});
-```
+## 📜 License
 
----
-
-### `window.AnalyticsSDK.registerEvent(eventType, handler)`
-
-Attach a custom event listener and log it:
-
-```ts
-const logFormSubmit = window.AnalyticsSDK.registerEvent("submit", (e) => {
-  return {
-    formId: e.target.id,
-    timestamp: Date.now(),
-  };
-});
-
-document.querySelector("#myForm").addEventListener("submit", () => {
-  logFormSubmit("form_submit", { status: "sent" });
-});
-```
-
----
-
-### `window.AnalyticsSDK.flushNow()`
-
-Immediately send collected events.
-
-```ts
-window.AnalyticsSDK.flushNow();
-```
-
----
-
-## 📤 Payload Format (Encrypted)
-
-On every flush, an encrypted payload is sent as:
-
-```json
-{
-  "ciphertext": "<base64-data>",
-  "nonce": "<base64-nonce>"
-}
-```
-
-Decryption is handled server-side using the AES-GCM key derived from PBKDF2.
-
----
-
-## 📂 File Structure
-
-```
-analytics-sdk/
-├── index.html
-├── analytics-sdk.ts         # Main JS logic
-├── rust-wasm/               # Rust + WASM tracker
-│   └── src/lib.rs
-├── types.ts                 # Type definitions
-├── pkg/                     # wasm-pack output
-└── README.md
-```
-
----
-
-## 🔒 Security
-
-- AES-256-GCM encryption of payloads
-- PBKDF2-HMAC-SHA256 for key derivation
-- Payload sent via `navigator.sendBeacon`
-
----
-
-## 📃 License
-
-This SDK is private. All rights reserved. Do not redistribute.
-
----
-
-## 🧑‍💻 Maintainer
-
-Built and maintained by [Your Name / Team].
-
-For help or integration support, contact: [you@example.com]
-
-## 🔐 Example: Before & After Encryption
-
-### 📦 Before Encryption (Raw Analytics Payload)
-
-```json
-{
-  "asset_id": "abc123",
-  "session_id": "session_456",
-  "page_url": "https://example.com",
-  "events": [
-    {
-      "type": "Click",
-      "data": { "x": 123.4, "y": 567.8, "timestamp": 1625253349000.0 }
-    }
-  ],
-  "scroll_depth": 87.5,
-  "time_on_page": 45.0,
-  "entry_page": "https://example.com/home",
-  "exit_page": "https://example.com/checkout",
-  "utm_params": { "utm_source": "google", "utm_medium": "cpc" },
-  "device_info": {
-    "userAgent": "Mozilla/5.0",
-    "platform": "Win32",
-    "os": "Windows",
-    "screenWidth": 1920,
-    "screenHeight": 1080,
-    "deviceType": "Desktop"
-  }
-}
-```
-
-### 🔐 After Encryption (Transmitted Payload)
-
-```json
-{
-  "ciphertext": "QMQihhUeyojicKQ6R2GowipHQQYjAHp0...",
-  "nonce": "12mb2A97rcGsMTXk"
-}
-```
-
-### Docker build comment
-
-```bash
-docker build --build-arg INSIGHTS_ENDPOINT=http://127.0.0.1:8000/collect/events --build-arg INSIGHTS_SECRET=insights-secret --build-arg INSIGHTS_SALT=analytics-salt --build-arg INSIGHTS_DEBUG=true -t my-sdk-image .
-```
+Licensed under the [MIT License](https://github.com/<your-username>/unisights/blob/main/LICENSE)—see the root `LICENSE` file for details.

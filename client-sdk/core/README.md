@@ -98,6 +98,6 @@ wasm-opt -Oz -o pkg/wasm_analytics_bg_opt.wasm pkg/wasm_analytics_bg.wasm
 
 ## 📜 License
 
-This code is currently licensed for **private/internal** use only. Not for redistribution without permission.
+Licensed under the [MIT License](https://github.com/<your-username>/unisights/blob/main/LICENSE)—see the root `LICENSE` file for details.
 
 ---

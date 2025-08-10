@@ -9,6 +9,7 @@ volumes:
   superset_home: {} # For Superset home directory
 
 services:
+  # Client SDK
   sdk-service:
     container_name: unisights-sdk
     build:
@@ -29,6 +30,7 @@ services:
     networks:
       - unisights-network
 
+  # Kafka with KRaft
   kafka:
     image: docker.io/bitnami/kafka:4.0
     container_name: kafka
@@ -54,6 +56,7 @@ services:
     networks:
       - unisights-network
 
+  # Kafka UI(Optional)
   kafdrop:
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
@@ -61,7 +64,7 @@ services:
       - "9003:9003"
     env_file: *env_file
     environment:
-      KAFKA_BROKERCONNECT: kafka:9092
+      KAFKA_BROKERCONNECT: ${KFFDROP_KAFKA_BROKERCONNECT:-kafka:9092}
       SERVER_PORT: ${KFFDROP_SERVER_PORT:-9003}
       JVM_OPTS: ${KFFDROP_JVM_OPTS:-"-Xms32m -Xmx64m"}
     depends_on:
@@ -70,6 +73,7 @@ services:
     networks:
       - unisights-network
 
+  # Ingestion Service
   ingestion-service:
     container_name: ingestion-service
     build:

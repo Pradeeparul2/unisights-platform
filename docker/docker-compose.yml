@@ -15,7 +15,7 @@ services:
       context: ../client-sdk
       dockerfile: Dockerfile
       args:
-        INSIGHTS_ENDPOINT: http://localhost:8000/collect/events
+        INSIGHTS_ENDPOINT: ${INSIGHTS_ENDPOINT}
         INSIGHTS_SECRET: ${INSIGHTS_SECRET}
         INSIGHTS_SALT: ${INSIGHTS_SALT}
         INSIGHTS_DEBUG: ${INSIGHTS_DEBUG}

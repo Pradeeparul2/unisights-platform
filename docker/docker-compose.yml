@@ -377,13 +377,13 @@ services:
     image: apache/superset:latest
     container_name: superset_app
     environment:
-      - SUPERSET_SECRET_KEY=CHANGE_ME_TO_A_SECURE_RANDOM_KEY
-      - DATABASE_DB=superset
-      - DATABASE_HOST=postgres
-      - DATABASE_PASSWORD=SupersetSecurePassword
-      - DATABASE_USER=superset
-      - DATABASE_PORT=5432
-      - DATABASE_DIALECT=postgresql
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY:-FoolishSecretKey}
+      - DATABASE_DB=${SUPERSET_DB}
+      - DATABASE_HOST=${SUPERSET_DB_HOST}
+      - DATABASE_PORT=${SUPERSET_DB_PORT}
+      - DATABASE_USER=${SUPERSET_DB_USER}
+      - DATABASE_PASSWORD=${SUPERSET_DB_PASSWORD}
+      - DATABASE_DIALECT=${SUPERSET_DB_DIALECT}
     ports:
       - "8088:8088"
     depends_on:

@@ -10,6 +10,18 @@ import {
   onTTFB,
   Metric as WebVital,
 } from "web-vitals";
+import { config } from "dotenv";
+
+interface GeoData {
+  country: string | null;
+  region: string | null;
+  regionCode: string | null;
+  city: string | null;
+  postalCode: string | null;
+  timezone: string | null;
+  latitude: string | null;
+  longitude: string | null;
+}
 
 interface AnalyticsSDK {
   init: (config: Partial<AnalyticsConfig>) => Promise<void>;
@@ -34,6 +46,7 @@ declare const process: {
     INSIGHTS_SALT: string;
     INSIGHTS_ENDPOINT?: string;
     INSIGHTS_DEBUG?: string;
+    INSIGHTS_GEO_API?: string;
   };
 };
 
@@ -45,6 +58,13 @@ const getScriptBaseUrl = () => {
   const scriptSrc = script?.src || "";
   const baseUrl = scriptSrc.substring(0, scriptSrc.lastIndexOf("/")) || "";
   return baseUrl;
+};
+
+const getGeoData = async (config: AnalyticsConfig): Promise<GeoData> => {
+  const geoAPI = process.env.INSIGHTS_GEO_API || "";
+  if (config.debug) console.log("[Insights] - Geo API:", geoAPI);
+  const response = await fetch(geoAPI);
+  return response.json();
 };
 
 const defaultConfig: AnalyticsConfig = {
@@ -166,7 +186,8 @@ async function initAnalytics(
     sessionId,
     location.href,
     getUTMParams(),
-    getDeviceInfo()
+    getDeviceInfo(),
+    getGeoData(config)
   );
 
   reportWebVitals(tracker, config);
@@ -226,7 +247,8 @@ async function initAnalytics(
         sessionId,
         currentPageUrl,
         getUTMParams(),
-        getDeviceInfo()
+        getDeviceInfo(),
+        getGeoData(config)
       );
       // Log new page view
       if (config.trackPageViews) {

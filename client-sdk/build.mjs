@@ -19,6 +19,9 @@ esbuild
       ),
       "process.env.INSIGHTS_SALT": JSON.stringify(process.env.INSIGHTS_SALT),
       "process.env.INSIGHTS_DEBUG": JSON.stringify(process.env.INSIGHTS_DEBUG),
+      "process.env.INSIGHTS_GEO_API": JSON.stringify(
+        process.env.INSIGHTS_GEO_API
+      ),
     },
   })
   .catch(() => process.exit(1));

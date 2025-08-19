@@ -132,6 +132,7 @@ async def ingest_events(payload: Payload, request: Request):
         raise HTTPException(status_code=500, detail="Encryption passphrase or salt not found")
     
     decrypted_payload = decrypt_payload(payload.data, payload.id, passphrase, salt)
+    logger.info(f"Decrypted payload: {json.dumps(decrypted_payload, indent=2)}")
     try:
         # Enrich payload with metadata
         client_ip = request.client.host

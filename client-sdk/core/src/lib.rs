@@ -37,6 +37,7 @@ pub struct Tracker {
     page_url: Option<String>,
     utm_params: JsValue,
     device_info: JsValue,
+    geo: JsValue,
 }
 
 #[derive(Serialize, Clone)]
@@ -69,6 +70,7 @@ struct FullAnalyticsPayload {
     exit_page: Option<String>,
     utm_params: serde_json::Value,
     device_info: serde_json::Value,
+    geo: serde_json::Value,
 }
 
 #[wasm_bindgen]
@@ -87,6 +89,7 @@ impl Tracker {
             page_url: None,
             utm_params: JsValue::UNDEFINED,
             device_info: JsValue::UNDEFINED,
+            geo: JsValue::UNDEFINED,
         }
     }
 
@@ -178,12 +181,14 @@ impl Tracker {
         page_url: String,
         utm_params: JsValue,
         device_info: JsValue,
+        geo: JsValue,
     ) {
         self.asset_id = Some(asset_id);
         self.session_id = Some(session_id);
         self.page_url = Some(page_url);
         self.utm_params = utm_params;
         self.device_info = device_info;
+        self.geo = geo;
     }
 
     // New method to update page_url
@@ -207,6 +212,8 @@ impl Tracker {
                 .map_err(|e| JsValue::from_str(&format!("UTM decode error: {}", e)))?,
             device_info: serde_wasm_bindgen::from_value(self.device_info.clone())
                 .map_err(|e| JsValue::from_str(&format!("Device decode error: {}", e)))?,
+            geo: serde_wasm_bindgen::from_value(self.geo.clone())
+                .map_err(|e| JsValue::from_str(&format!("Geo decode error: {}", e)))?,
         };
 
         let json = serde_json::to_vec(&payload)

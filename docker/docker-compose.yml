@@ -1,3 +1,4 @@
+name: unisights
 x-env-file: &env_file
   - .env
 
@@ -20,6 +21,7 @@ services:
         INSIGHTS_SECRET: ${INSIGHTS_SECRET}
         INSIGHTS_SALT: ${INSIGHTS_SALT}
         INSIGHTS_DEBUG: ${INSIGHTS_DEBUG}
+        INSIGHTS_GEO_API: ${INSIGHTS_GEO_API}
     env_file: *env_file
     ports:
       - "9005:9005"
@@ -60,6 +62,7 @@ services:
   kafdrop:
     image: obsidiandynamics/kafdrop
     container_name: kafdrop
+    profiles: ["ingestion"]
     ports:
       - "9003:9003"
     env_file: *env_file
@@ -109,11 +112,11 @@ services:
       - "5432:5432"
     env_file: *env_file
     volumes:
-      - metadata_data:/var/lib/postgresql/data # Shared volume
       - ./postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - metadata_data:/var/lib/postgresql/data # Shared volume
     environment:
-      - POSTGRES_PASSWORD=${DRUID_POSTGRES_PASSWORD:-FoolishPassword} # Root password for PostgreSQL
-      - POSTGRES_USER=${DRUID_POSTGRES_USER:-postgres} # Default superuser
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-FoolishPassword} # Root password for PostgreSQL
+      - POSTGRES_USER=${POSTGRES_USER:-postgres} # Default superuser
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

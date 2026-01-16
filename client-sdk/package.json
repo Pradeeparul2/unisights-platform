@@ -5,7 +5,7 @@
     "build": "tsc && node build.mjs && cp ./core/pkg/* ./dist/pkg/*",
     "dev:build": "tsc && esbuild src/analytics.ts --bundle --outfile=dist/analytics.js --format=esm --sourcemap --loader:.wasm=binary --define:process.env.NODE_ENV='\"development\"' && cp ./pkg/* ./dist/pkg/*",
     "dev:watch": "node build.mjs --watch --define:process.env.NODE_ENV='\"development\"'",
-    "serve": "live-server dist --no-browser --port=3000 --watch=dist",
+    "serve": "live-server dist --no-browser --port=9005 --watch=dist --cors",
     "dev": "concurrently \"pnpm dev:watch\" \"pnpm serve\""
   },
   "dependencies": {

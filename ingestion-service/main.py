@@ -1,33 +1,33 @@
-from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, HttpUrl, constr
-from kafka import KafkaProducer
-from kafka.errors import KafkaError
-import geoip2.database
-import json
-import time
-import logging
 import os
-from typing import Dict, List
-from contextlib import asynccontextmanager
+import time
+import json
+import logging
 import asyncio
-from fastapi.middleware.cors import CORSMiddleware
-from cipher import decrypt_payload
-from kafka_setup import create_topic
-
+import geoip2.database
+from typing import Dict, List
 from dotenv import load_dotenv
+from kafka import KafkaProducer
+from cipher import decrypt_payload
+from kafka.errors import KafkaError
+from kafka_setup import create_topic
+from contextlib import asynccontextmanager
+from pydantic import BaseModel, HttpUrl, constr
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 # Configure logging
+
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # FastAPI app
 
 # Allow CORS from 127.0.0.1:8080
+
 origins = [
     "http://127.0.0.1:8080",
     "http://localhost:8080",  # optional, if needed
@@ -38,10 +38,13 @@ origins = [
 
 
 # Global Kafka producer and readiness state
+
 kafka_producer = None
 producer_ready = False
 
-UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+EVENT_TOPIC = os.getenv("EVENT_TOPIC", "analytics.events")
+SESSION_TOPIC = os.getenv("SESSION_TOPIC", "analytics.sessions")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -58,27 +61,30 @@ async def lifespan(app: FastAPI):
                 value_serializer=lambda v: json.dumps(v).encode("utf-8"),
                 retries=5,
                 batch_size=16384,
-                linger_ms=10
+                linger_ms=10,
             )
 
             # Create event topic if it doesn't exist
-            create_topic(os.getenv("EVENT_TOPIC"), 1, 1)
+
+            create_topic(EVENT_TOPIC, 1, 1)
 
             # Create stream topic if it doesn't exist
-            create_topic(os.getenv("SESSION_TOPIC"), 1, 1)
+
+            create_topic(SESSION_TOPIC, 1, 1)
 
             producer_ready = True
             logger.info(f"Kafka producer initialized on attempt {attempt + 1}")
             break
         except KafkaError as e:
-            logger.error(f"Kafka initialization failed on attempt {attempt + 1}: {str(e)}")
+            logger.error(
+                f"Kafka initialization failed on attempt {attempt + 1}: {str(e)}"
+            )
             if attempt < max_retries - 1:
                 await asyncio.sleep(retry_delay)
             else:
                 logger.error("Max retries reached. Kafka producer not initialized.")
                 producer_ready = False
                 raise Exception("Failed to initialize Kafka producer")
-
     yield
 
     if kafka_producer:
@@ -87,11 +93,12 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown")
 
 
-app = FastAPI(title="Analytics Ingestion Service", 
-              description="Service for ingesting analytics events and sending them to Kafka",
-              version="1.0.0",
-              lifespan=lifespan
-              )
+app = FastAPI(
+    title="Analytics Ingestion Service",
+    description="Service for ingesting analytics events and sending them to Kafka",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -102,21 +109,36 @@ app.add_middleware(
 )
 
 # GeoIP database
+
 try:
-    geo_reader = geoip2.database.Reader(os.getenv("GEOIP_DB_PATH", "geo/GeoLite2-City.mmdb"))
+    geo_reader = geoip2.database.Reader(
+        os.getenv("GEOIP_DB_PATH", "geo/GeoLite2-City.mmdb")
+    )
     logger.info("GeoIP database loaded successfully")
 except Exception as e:
     logger.error(f"Failed to load GeoIP database: {str(e)}")
     raise
-
 # Pydantic models for payload validation
+
+
 class EventData(BaseModel):
     type: str
     data: Dict
 
+
 class Payload(BaseModel):
     data: str
     id: str
+
+
+def get_client_ip(request: Request) -> str | None:
+    ip = (
+        request.headers.get("cf-connecting-ip")
+        or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.client.host
+    )
+    return ip or None
+
 
 @app.post("/collect/events", status_code=202)
 async def ingest_events(payload: Payload, request: Request):
@@ -124,40 +146,53 @@ async def ingest_events(payload: Payload, request: Request):
     if not producer_ready or kafka_producer is None:
         logger.error("Kafka producer not initialized")
         raise HTTPException(status_code=503, detail="Kafka service unavailable")
-
     passphrase = os.getenv("ENCRYPTION_PASSPHRASE")
     salt = os.getenv("ENCRYPTION_SALT")
     # Check if encryption passphrase and salt are provided
+
     if passphrase is None or salt is None:
-        raise HTTPException(status_code=500, detail="Encryption passphrase or salt not found")
-    
+        raise HTTPException(
+            status_code=500, detail="Encryption passphrase or salt not found"
+        )
     decrypted_payload = decrypt_payload(payload.data, payload.id, passphrase, salt)
+
+    required_fields = ["asset_id", "session_id", "events", "device_info", "utm_params"]
+    for field in required_fields:
+        if field not in decrypted_payload:
+            raise HTTPException(400, f"Missing field: {field}")
     try:
         # Enrich payload with metadata
-        client_ip = request.client.host
+
+        client_ip = get_client_ip(request)
         geo = None
         try:
             geo = geo_reader.city(client_ip)
         except geoip2.errors.AddressNotFoundError:
             logger.warning(f"GeoIP lookup failed for IP: {client_ip}")
-
         metadata = {
-            "ip": client_ip,
+            # Remove IP address due to GDPR regulations
+            # "ip": client_ip,
             "geo": {
                 "country": geo.country.iso_code if geo else None,
                 "city": geo.city.name if geo else None,
                 "lat": geo.location.latitude if geo else None,
-                "lon": geo.location.longitude if geo else None
+                "lon": geo.location.longitude if geo else None,
+                "region": geo.subdivisions.most_specific.name if geo else None,
             },
             "received_at": int(time.time() * 1000),
-            "user_agent": request.headers.get("user-agent")
+            "user_agent": request.headers.get("user-agent"),
         }
-        
-        # Validate that required fields exist
-        if "events" not in decrypted_payload or not isinstance(decrypted_payload["events"], list):
-            raise HTTPException(status_code=400, detail="Invalid or missing 'events' list")
 
+        # Validate that required fields exist
+
+        if "events" not in decrypted_payload or not isinstance(
+            decrypted_payload["events"], list
+        ):
+            raise HTTPException(
+                status_code=400, detail="Invalid or missing 'events' list"
+            )
         # Enrich base fields
+
         session_meta = {
             "asset_id": decrypted_payload.get("asset_id"),
             "session_id": decrypted_payload.get("session_id"),
@@ -168,71 +203,61 @@ async def ingest_events(payload: Payload, request: Request):
             "time_on_page": decrypted_payload.get("time_on_page"),
             "device_type": decrypted_payload["device_info"].get("deviceType"),
             "os": decrypted_payload["device_info"].get("os"),
-            "platform": decrypted_payload['device_info'].get("platform"),
-            "screen_width": decrypted_payload['device_info'].get("screenWidth"),
+            "platform": decrypted_payload["device_info"].get("platform"),
+            "screen_width": decrypted_payload["device_info"].get("screenWidth"),
             "screen_height": decrypted_payload["device_info"].get("screenHeight"),
             "utm_source": decrypted_payload["utm_params"].get("utm_source"),
             "utm_medium": decrypted_payload["utm_params"].get("utm_medium"),
             "utm_campaign": decrypted_payload["utm_params"].get("utm_campaign"),
             "utm_term": decrypted_payload["utm_params"].get("utm_term"),
             "utm_content": decrypted_payload["utm_params"].get("utm_content"),
-            **metadata  # includes ip, geo, received_at, user_agent
+            **metadata,  # includes ip, geo, received_at, user_agent
         }
 
         # Publish each event separately
+
         for event in decrypted_payload["events"]:
             event_type = event.get("type")
             event_data = event.get("data", {})
             if not event_type or not isinstance(event_data, dict):
                 logger.warning(f"Skipping invalid event: {event}")
                 continue
-
             single_event_message = {
                 "event_type": event_type,
                 "event_data": event_data,
-                "event_name": event_data.get("name"),  # e.g. button_click, FCP, TTFB, etc.
+                "event_name": event_data.get(
+                    "name"
+                ),  # e.g. button_click, FCP, TTFB, etc.
                 "event_timestamp": event_data.get("timestamp"),
-                **session_meta
+                **session_meta,
             }
 
             kafka_producer.send(
-                topic=os.getenv("EVENT_TOPIC"),  # or a separate topic like "event-stream"
+                topic=EVENT_TOPIC,  # or a separate topic like "event-stream"
                 key=session_meta["asset_id"].encode("utf-8"),
-                value=single_event_message
+                value=single_event_message,
             )
-            logger.debug(f"Published {event_type} event to Kafka for session {session_meta['asset_id']}")
-
+            logger.debug(
+                f"Published {event_type} event to Kafka for session {session_meta['asset_id']}"
+            )
         final_payload = {**decrypted_payload, **metadata}
         logger.info(f"Received payload: {json.dumps(final_payload, indent=2)}")
-        kafka_producer.send(
-                topic=os.getenv("SESSION_TOPIC"),
-                key=final_payload["asset_id"].encode("utf-8"),
-                value= session_meta
-            )
+        future = kafka_producer.send(
+            topic=SESSION_TOPIC,
+            key=final_payload["asset_id"].encode("utf-8"),
+            value=session_meta,
+        )
+        future.add_errback(lambda e: logger.error(f"Kafka send failed: {e}"))
         logger.debug(f"Published for session {session_meta['asset_id']} to Kafka")
 
-        # # Publish each event to Kafka
-        # for event in payload.events:
-        #     event_message = {
-        #         "timestamp": metadata["received_at"],
-        #         "session_id": payload.session_id,
-        #         "page_url": str(payload.page_url),
-        #         "event_type": event.type,
-        #         "event_data": event.data,
-        #         "scroll_depth": payload.scroll_depth,
-        #         "time_on_page": payload.time_on_page,
-        #         **metadata
-        #     }
-        #     kafka_producer.send(
-        #         topic=f"events.{event.type.lower()}",
-        #         key=payload.session_id.encode("utf-8"),
-        #         value=event_message
-        #     )
-        #     logger.debug(f"Published event {event.type} for session {payload.session_id} to Kafka")
-
-        # Flush producer to ensure delivery
-        kafka_producer.flush()
-        logger.info(f"Successfully ingested events to Kafka for session {final_payload["session_id"]}")
+        logger.info(
+            "Payload ingested",
+            extra={
+                "asset_id": decrypted_payload["asset_id"],
+                "session_id": decrypted_payload["session_id"],
+                "event_count": len(decrypted_payload["events"]),
+            },
+        )
 
         return {"status": "accepted"}
     except KafkaError as e:
@@ -242,29 +267,35 @@ async def ingest_events(payload: Payload, request: Request):
         logger.error(f"Error processing payload: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring."""
-    if not producer_ready or kafka_producer is None:
-        logger.error("Health check failed: Kafka producer not initialized")
-        raise HTTPException(status_code=503, detail="Kafka service unavailable")
+    """Liveness probe: is the app running?"""
+    return {
+        "status": "ok",
+        "service": "analytics-ingestion",
+        "timestamp": int(time.time() * 1000),
+    }
 
+
+@app.get("/ready")
+async def readiness_check():
+    """Readiness probe: are dependencies available?"""
+    if not producer_ready or kafka_producer is None:
+        raise HTTPException(status_code=503, detail="Kafka not ready")
     try:
-        # Send test message to health check topic
-        kafka_producer.send(
-            topic="health_check",
-            value={"status": "ping", "timestamp": int(time.time() * 1000)}
-        )
-        kafka_producer.flush()
-        logger.info("Health check passed")
-        return {"status": "healthy", "kafka": "connected"}
-    except KafkaError as e:
-        logger.error(f"Health check failed: Kafka error - {str(e)}")
-        raise HTTPException(status_code=503, detail=f"Kafka service unavailable")
+        # Metadata check (read-only)
+
+        kafka_producer.bootstrap_connected()
+        return {"status": "ready", "kafka": "connected"}
     except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        raise HTTPException(status_code=503, detail="Service unavailable")
+        logger.warning(f"Readiness check failed: {e}")
+        raise HTTPException(status_code=503, detail="Kafka not reachable")
+
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), lifespan="on")
+
+    uvicorn.run(
+        "main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), lifespan="on"
+    )

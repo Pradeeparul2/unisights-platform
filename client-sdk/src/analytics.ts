@@ -1,6 +1,5 @@
 // analytics-sdk.ts
 import initWasm, * as wasm from "../core/pkg/unisights_core.js";
-import { v4 as uuidv4 } from "uuid";
 import type { AnalyticsConfig, EventHandler, DeviceData } from "./types";
 import {
   onCLS,
@@ -88,10 +87,10 @@ function getUTMParams(): Record<string, string> {
   const params: Record<string, string> = {};
   const url = new URLSearchParams(window.location.search);
   for (const key of keys) {
-    const value = url.get(key) || sessionStorage.getItem(`utm_${key}`);
+    const value = url.get(key) || sessionStorage.getItem(`_us_${key}`);
     if (value) {
       params[key] = value;
-      sessionStorage.setItem(`utm_${key}`, value);
+      sessionStorage.setItem(`_us_${key}`, value);
     }
   }
   return params;
@@ -123,6 +122,46 @@ function getDeviceInfo(): DeviceData {
   };
 }
 
+const isBot = /bot|crawler|spider|crawling/i.test(navigator.userAgent);
+
+const SESSION_KEY = "__ua_session";
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 min
+
+function getOrCreateSession(): string {
+  const now = Date.now();
+  const stored = localStorage.getItem(SESSION_KEY);
+
+  if (stored) {
+    const session = JSON.parse(stored);
+
+    // still active?
+    if (now - session.lastActivity < SESSION_TIMEOUT) {
+      session.lastActivity = now;
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      return session.sessionId;
+    }
+  }
+
+  // create new session
+  const session = {
+    sessionId: crypto.randomUUID(),
+    startedAt: now,
+    lastActivity: now,
+  };
+
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  return session.sessionId;
+}
+
+function touchSession() {
+  const stored = localStorage.getItem(SESSION_KEY);
+  if (!stored) return;
+
+  const session = JSON.parse(stored);
+  session.lastActivity = Date.now();
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
 let isInitialized = false;
 let flushTimer: number | undefined = undefined;
 let currentPageUrl = location.href; // Track current page URL
@@ -135,6 +174,8 @@ async function initAnalytics(
 
   const tag = document.querySelector("script[data-insights-id]");
   const id = tag?.getAttribute("data-insights-id");
+  const secret = tag?.getAttribute("data-secret")!;
+  const salt = tag?.getAttribute("data-salt")!;
   if (!id) throw new Error("Missing data-insights-id");
 
   let tagConfig: Partial<AnalyticsConfig> = {};
@@ -143,6 +184,8 @@ async function initAnalytics(
   } catch (e) {
     console.error("[Insights] - Config parse error:", e);
   }
+
+  if (isBot) return;
 
   const config = {
     ...defaultConfig,
@@ -153,13 +196,13 @@ async function initAnalytics(
 
   await initWasm(config.wasmPath);
   const tracker = new wasm.Tracker();
-  const sessionId = getSessionId();
+  const sessionId = getOrCreateSession();
   let start = performance.now();
   let pending = false;
 
   tracker.setEncryptionKey(
-    process.env.INSIGHTS_SECRET,
-    process.env.INSIGHTS_SALT
+    secret || process.env.INSIGHTS_SECRET,
+    salt || process.env.INSIGHTS_SALT
   );
   tracker.setSessionInfo(
     config.insightsId,
@@ -177,6 +220,7 @@ async function initAnalytics(
   if (config.trackClicks) {
     const clickHandler = (e: MouseEvent) => {
       tracker.logClick(e.clientX, e.clientY);
+      touchSession();
       pending = true;
     };
     window.addEventListener("click", clickHandler);
@@ -194,6 +238,7 @@ async function initAnalytics(
           (document.body.scrollHeight || 1)) *
         100;
       tracker.updateScroll(percent);
+      touchSession();
       pending = true;
     };
     window.addEventListener("scroll", scrollHandler);
@@ -221,18 +266,20 @@ async function initAnalytics(
       currentPageUrl = newUrl;
       // Assuming wasm.Tracker has a method to update page URL, e.g., setPageUrl
       // If not, you may need to extend the WASM module or reset session info
-      tracker.setSessionInfo(
-        config.insightsId,
-        sessionId,
-        currentPageUrl,
-        getUTMParams(),
-        getDeviceInfo()
-      );
+      // SPA navigation: avoid resetting full session info
+      // tracker.setSessionInfo(
+      //   config.insightsId,
+      //   sessionId,
+      //   currentPageUrl,
+      //   getUTMParams(),
+      //   getDeviceInfo()
+      // );
       // Log new page view
       if (config.trackPageViews) {
         tracker.logPageView(currentPageUrl);
         if (config.debug)
           console.log("[Insights] - Page view event:", currentPageUrl);
+        touchSession();
         pending = true;
       }
     }
@@ -260,9 +307,18 @@ async function initAnalytics(
         currentPageUrl
       );
     sendAnalytics(tracker, config, true);
+    touchSession();
     pending = false;
   };
   window.addEventListener("pagehide", pagehideHandler);
+
+  // Use visibilitychange to flush before backgrounding
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      sendAnalytics(tracker, config, true);
+      pending = false;
+    }
+  });
 
   flushTimer = window.setInterval(() => {
     const now = performance.now();
@@ -293,6 +349,7 @@ async function initAnalytics(
     log: (name: string, data: any) => {
       try {
         tracker.logCustomEvent(name, JSON.stringify(data));
+        touchSession();
         pending = true;
       } catch (e) {
         console.error("[Insights] - log() error:", e);
@@ -309,15 +366,6 @@ async function initAnalytics(
       }
     });
   }
-}
-
-function getSessionId(): string {
-  let sid = sessionStorage.getItem("insights_session_id");
-  if (!sid) {
-    sid = uuidv4();
-    sessionStorage.setItem("insights_session_id", sid);
-  }
-  return sid;
 }
 
 function sendAnalytics(

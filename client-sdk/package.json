@@ -5,16 +5,14 @@
     "build": "tsc && node build.mjs && cp ./core/pkg/* ./dist/pkg/*",
     "dev:build": "tsc && esbuild src/analytics.ts --bundle --outfile=dist/analytics.js --format=esm --sourcemap --loader:.wasm=binary --define:process.env.NODE_ENV='\"development\"' && cp ./pkg/* ./dist/pkg/*",
     "dev:watch": "node build.mjs --watch --define:process.env.NODE_ENV='\"development\"'",
-    "serve": "live-server dist --no-browser --port=3000 --watch=dist",
+    "serve": "live-server dist --no-browser --port=9005 --watch=dist --cors",
     "dev": "concurrently \"pnpm dev:watch\" \"pnpm serve\""
   },
   "dependencies": {
     "dotenv": "^17.0.1",
-    "uuid": "^10.0.0",
     "web-vitals": "^5.0.3"
   },
   "devDependencies": {
-    "@types/uuid": "^10.0.0",
     "concurrently": "^9.2.0",
     "esbuild": "^0.23.0",
     "live-server": "^1.2.2",

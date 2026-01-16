@@ -56,6 +56,8 @@ Inject the SDK into your website by adding the following `<script>` tag to your 
   id="unisights-script"
   defer
   data-insights-id="your-insights-id"
+  data-secret="..."
+  data-salt="..."
   src="http://localhost:9005/analytics-bundle.min.js"
 ></script>
 ```

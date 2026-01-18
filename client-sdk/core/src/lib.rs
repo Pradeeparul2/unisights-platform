@@ -194,6 +194,10 @@ impl Tracker {
 
     #[wasm_bindgen(js_name = exportEncryptedPayload)]
     pub fn export_encrypted_payload(&self) -> Result<JsValue, JsValue> {
+        // Check if events are empty
+        if self.events.is_empty() {
+            return Err(JsValue::from_str("No events to export"));
+        }
         let payload = FullAnalyticsPayload {
             asset_id: self.asset_id.clone().ok_or("Missing asset_id")?,
             session_id: self.session_id.clone().ok_or("Missing session_id")?,

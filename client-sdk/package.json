@@ -2,8 +2,8 @@
   "name": "unisights-sdk",
   "version": "0.0.1",
   "scripts": {
-    "build": "tsc && node build.mjs && cp ./core/pkg/* ./dist/pkg/*",
-    "dev:build": "tsc && esbuild src/analytics.ts --bundle --outfile=dist/analytics.js --format=esm --sourcemap --loader:.wasm=binary --define:process.env.NODE_ENV='\"development\"' && cp ./pkg/* ./dist/pkg/*",
+    "build": "tsc && node build.mjs && cpx \"core/pkg/**/*\" dist/pkg",
+    "dev:build": "tsc && esbuild src/analytics.ts --bundle --outfile=dist/analytics.js --format=esm --sourcemap --loader:.wasm=binary --define:process.env.NODE_ENV='\"development\"' && cpx \"core/pkg/**/*\" dist/pkg",
     "dev:watch": "node build.mjs --watch --define:process.env.NODE_ENV='\"development\"'",
     "serve": "live-server dist --no-browser --port=9005 --watch=dist --cors",
     "dev": "concurrently \"pnpm dev:watch\" \"pnpm serve\""
@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
+    "cpx": "^1.5.0",
     "esbuild": "^0.23.0",
     "live-server": "^1.2.2",
     "typescript": "^5.5.0"

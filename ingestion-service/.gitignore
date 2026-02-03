@@ -4,3 +4,4 @@ geo
 __pycache__
 minio-data/*
 .minio*
+.venv

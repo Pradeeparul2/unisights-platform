@@ -1,5 +1,5 @@
 # Stage 1: Build Stage
-FROM rust:1.82 AS builder
+FROM rust:1.88 AS builder
 
 # Install Node.js, npm, and TypeScript for JavaScript/TS build
 RUN apt-get update && apt-get install -y nodejs npm

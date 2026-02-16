@@ -14,7 +14,7 @@ interface AnalyticsSDK {
   init: (config: Partial<AnalyticsConfig>) => Promise<void>;
   registerEvent: (
     eventType: string,
-    handler: EventHandler
+    handler: EventHandler,
   ) => (name: string, data: any) => void;
   flushNow: () => void;
   log: (name: string, data: any) => void;
@@ -39,7 +39,7 @@ declare const process: {
 // Dynamically determine the base URL of the script
 const getScriptBaseUrl = () => {
   const script = document.getElementById(
-    "unisights-script"
+    "unisights-script",
   ) as HTMLScriptElement | null;
   const scriptSrc = script?.src || "";
   const baseUrl = scriptSrc.substring(0, scriptSrc.lastIndexOf("/")) || "";
@@ -66,7 +66,7 @@ function reportWebVitals(tracker: wasm.Tracker, config: AnalyticsConfig) {
         metric.rating,
         metric.delta,
         metric.entries?.length || 0,
-        metric.navigationType || "navigate"
+        metric.navigationType || "navigate",
       );
       config.debug && console.log("[Insights] - Web Vital logged:", metric);
     } catch (e) {
@@ -102,14 +102,14 @@ function getDeviceInfo(): DeviceData {
   const os = /Win/.test(platform)
     ? "Windows"
     : /Mac/.test(platform)
-    ? "macOS"
-    : /Linux/.test(platform)
-    ? "Linux"
-    : /Android/.test(ua)
-    ? "Android"
-    : /iPhone|iPad|iPod/.test(ua)
-    ? "iOS"
-    : "Unknown";
+      ? "macOS"
+      : /Linux/.test(platform)
+        ? "Linux"
+        : /Android/.test(ua)
+          ? "Android"
+          : /iPhone|iPad|iPod/.test(ua)
+            ? "iOS"
+            : "Unknown";
 
   const deviceType = /Mobi|Android/i.test(ua) ? "Mobile" : "Desktop";
   return {
@@ -167,7 +167,7 @@ let flushTimer: number | undefined = undefined;
 let currentPageUrl = location.href; // Track current page URL
 
 async function initAnalytics(
-  userConfig: Partial<AnalyticsConfig> = {}
+  userConfig: Partial<AnalyticsConfig> = {},
 ): Promise<void> {
   if (isInitialized) return;
   isInitialized = true;
@@ -202,14 +202,14 @@ async function initAnalytics(
 
   tracker.setEncryptionKey(
     secret || process.env.INSIGHTS_SECRET,
-    salt || process.env.INSIGHTS_SALT
+    salt || process.env.INSIGHTS_SALT,
   );
   tracker.setSessionInfo(
     config.insightsId,
     sessionId,
     location.href,
     getUTMParams(),
-    getDeviceInfo()
+    getDeviceInfo(),
   );
 
   reportWebVitals(tracker, config);
@@ -304,7 +304,7 @@ async function initAnalytics(
     if (config.debug)
       console.log(
         "[Insights] - Exit page (via pagehide) event:",
-        currentPageUrl
+        currentPageUrl,
       );
     sendAnalytics(tracker, config, true);
     touchSession();
@@ -371,7 +371,7 @@ async function initAnalytics(
 function sendAnalytics(
   tracker: wasm.Tracker,
   config: AnalyticsConfig,
-  final: boolean = false
+  final: boolean = false,
 ): void {
   try {
     const encrypted = tracker.exportEncryptedPayload();
@@ -398,7 +398,7 @@ function sendAnalytics(
 
     if (sent) tracker.clearEvents();
   } catch (err) {
-    console.error("[Insights] - Send Error:", err);
+    if (config.debug) console.error("[Insights] - Send Error:", err);
   }
 }
 

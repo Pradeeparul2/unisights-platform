@@ -1,6 +1,6 @@
 # Unisights Client SDK
 
-The Unisights Client SDK is a WebAssembly-powered analytics tracker built with Rust and TypeScript. It captures user interactions in the browser, encrypts data client-side, and sends it securely to your Unisights ingestion service — with minimal performance impact.
+The Unisights analytics is a WebAssembly-powered analytics tracker built with Rust and TypeScript. It captures user interactions in the browser, encrypts data client-side, and sends it securely to your Unisights ingestion service — with minimal performance impact.
 
 ---
 
@@ -40,7 +40,7 @@ Add the script tag to your HTML `<head>`. The SDK auto-initializes and exposes `
   data-insights-id="your-insights-id"
   data-secret="your-secret"
   data-salt="your-salt"
-  src="https://cdn.yourdomain.com/unisights.min.js"
+  src="https://cdn.jsdelivr.net/npm/@unisights/analytics@X.X.X/dist/unisights.min.js"
 ></script>
 ```
 
@@ -102,7 +102,7 @@ If you prefer to control when the SDK initializes, omit `data-insights-id` and c
   data-insights-id="your-insights-id"
   data-secret="your-secret"
   data-salt="your-salt"
-  src="https://cdn.yourdomain.com/unisights.min.js"
+  src="https://cdn.jsdelivr.net/npm/@unisights/analytics@X.X.X/dist/unisights.min.js"
 ></script>
 
 <script type="module">

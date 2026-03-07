@@ -32,6 +32,7 @@ pub struct Tracker {
     entry_page: Option<String>,
     exit_page: Option<String>,
     encryption_key: Option<[u8; 32]>,
+    encrypt: bool,
     asset_id: Option<String>,
     session_id: Option<String>,
     page_url: Option<String>,
@@ -82,6 +83,7 @@ impl Tracker {
             entry_page: None,
             exit_page: None,
             encryption_key: None,
+            encrypt: false,
             asset_id: None,
             session_id: None,
             page_url: None,
@@ -165,9 +167,15 @@ impl Tracker {
     }
 
     #[wasm_bindgen(js_name = setEncryptionKey)]
-    pub fn set_encryption_key(&mut self, passphrase: String, salt: String) {
+    pub fn set_encryption_key(&mut self, passphrase: String, salt: String, encrypt: bool) {
+        if !encrypt {
+            self.encryption_key = None;
+            self.encrypt = false;
+            return;
+        }
         let key = derive_key(&passphrase, salt.as_bytes());
         self.encryption_key = Some(key);
+        self.encrypt = true;
     }
 
     #[wasm_bindgen(js_name = setSessionInfo)]
@@ -194,10 +202,10 @@ impl Tracker {
 
     #[wasm_bindgen(js_name = exportEncryptedPayload)]
     pub fn export_encrypted_payload(&self) -> Result<JsValue, JsValue> {
-        // Check if events are empty
         if self.events.is_empty() {
             return Err(JsValue::from_str("No events to export"));
         }
+
         let payload = FullAnalyticsPayload {
             asset_id: self.asset_id.clone().ok_or("Missing asset_id")?,
             session_id: self.session_id.clone().ok_or("Missing session_id")?,
@@ -216,6 +224,16 @@ impl Tracker {
         let json = serde_json::to_vec(&payload)
             .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))?;
 
+        if !self.encrypt {
+            let out = json!({
+                "data": serde_json::from_slice::<serde_json::Value>(&json).unwrap(),
+                "encrypted": false,
+            });
+            return serde_wasm_bindgen::to_value(&out)
+                .map_err(|e| JsValue::from_str(&format!("Conversion error: {}", e)));
+        }
+
+        // Encrypted payload
         let key = self
             .encryption_key
             .ok_or_else(|| JsValue::from_str("Encryption key not set"))?;
@@ -225,6 +243,7 @@ impl Tracker {
         let out = json!({
             "data": general_purpose::STANDARD.encode(ciphertext),
             "id": general_purpose::STANDARD.encode(nonce),
+            "encrypted": true,
         });
 
         serde_wasm_bindgen::to_value(&out)

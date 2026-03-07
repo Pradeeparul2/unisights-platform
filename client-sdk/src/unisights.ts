@@ -41,6 +41,7 @@ interface UnisightsConfig {
   endpoint: string;
   insightsId?: string;
   debug?: boolean;
+  encrypt?: boolean;
   flushIntervalMs?: number;
   trackPageViews?: boolean;
   trackClicks?: boolean;
@@ -63,6 +64,7 @@ declare const process: {
 const defaultConfig: UnisightsConfig = {
   endpoint: process.env.INSIGHTS_ENDPOINT || "",
   debug: process.env.INSIGHTS_DEBUG === "true",
+  encrypt: false,
   flushIntervalMs: 15000, // 15 seconds
   trackPageViews: true,
   trackClicks: true,
@@ -230,10 +232,14 @@ export async function init(
   let start = performance.now();
   pending = false;
 
-  tracker.setEncryptionKey(
-    secret || process.env.INSIGHTS_SECRET,
-    salt || process.env.INSIGHTS_SALT,
-  );
+  if (config.encrypt !== false) {
+    if (!secret || !salt)
+      throw new Error("Encryption requires secret and salt");
+    tracker.setEncryptionKey(secret, salt, true);
+  } else {
+    tracker.setEncryptionKey("", "", false);
+  }
+
   tracker.setSessionInfo(
     config.insightsId,
     sessionId,
@@ -371,30 +377,38 @@ export async function init(
   }
 }
 
+function deepConvertMap(obj: any): any {
+  if (obj instanceof Map) {
+    const result: Record<string, any> = {};
+    obj.forEach((value, key) => {
+      result[key] = deepConvertMap(value);
+    });
+    return result;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(deepConvertMap);
+  }
+  return obj;
+}
+
 function sendAnalytics(
   tracker: wasm.Tracker,
   config: UnisightsConfig,
   final: boolean = false,
 ): void {
   try {
-    const encrypted = tracker.exportEncryptedPayload();
-    if (config.debug) console.log("[Insights] - Payload:", encrypted);
-    if (!encrypted || encrypted instanceof Error) return;
+    const payload = tracker.exportEncryptedPayload();
+    if (config.debug) console.log("[Insights] - Payload:", payload);
+    if (!payload || payload instanceof Error) return;
 
-    // Convert JsValue (from wasm) into plain JS object
-    const encryptedObj =
-      encrypted instanceof Map
-        ? Object.fromEntries(encrypted.entries())
-        : encrypted;
-
-    const blob = new Blob([JSON.stringify(encryptedObj)], {
+    const converted = deepConvertMap(payload);
+    const blob = new Blob([JSON.stringify(converted)], {
       type: "application/json",
     });
 
     const sent = navigator.sendBeacon(config.endpoint, blob);
-
     config.debug &&
-      console.log("[Insights] - Encrypted payload sent:", {
+      console.log("[Insights] - Payload sent:", {
         success: sent,
         length: blob.size,
       });

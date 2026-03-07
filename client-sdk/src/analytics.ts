@@ -50,7 +50,7 @@ const defaultConfig: AnalyticsConfig = {
   endpoint: process.env.INSIGHTS_ENDPOINT || "",
   debug: process.env.INSIGHTS_DEBUG === "true",
   flushIntervalMs: 15000, // 15 seconds
-  wasmPath: `${getScriptBaseUrl()}/pkg/unisights_core_bg.wasm`,
+  // wasmPath: `${getScriptBaseUrl()}/pkg/unisights_core_bg.wasm`,
   trackPageViews: true,
   trackClicks: true,
   trackScroll: true,
@@ -194,7 +194,7 @@ async function initAnalytics(
     insightsId: id,
   };
 
-  await initWasm(config.wasmPath);
+  await initWasm();
   const tracker = new wasm.Tracker();
   const sessionId = getOrCreateSession();
   let start = performance.now();

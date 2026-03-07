@@ -1,7 +1,5 @@
 node_modules
-pkg
 package-lock.json
-dist
 target
 .env
 pnpm-lock.yaml

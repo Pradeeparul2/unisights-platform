@@ -48,6 +48,11 @@ jobs:
           cp -r core/pkg dist/
         working-directory: client-sdk
 
+      - name: Check dist contents
+        run: |
+          ls -R dist
+        working-directory: client-sdk
+
       - name: Publish to NPM
         run: npm publish --access public
         working-directory: client-sdk

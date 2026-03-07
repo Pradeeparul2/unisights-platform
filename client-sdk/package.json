@@ -1,7 +1,7 @@
 {
   "name": "@unisights/tracker",
   "description": "Unisights browser event tracking script",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "dist/unisights.min.js",
   "author": {
     "name": "Pradeep Arul",
@@ -27,7 +27,8 @@
     "typescript": "^5.5.0"
   },
   "files": [
-    "dist"
+    "dist",
+    "dist/pkg"
   ],
   "license": "MIT"
 }

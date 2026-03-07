@@ -60,16 +60,6 @@ declare const process: {
   };
 };
 
-// Dynamically determine the base URL of the script
-const getScriptBaseUrl = () => {
-  const script = document.getElementById(
-    "unisights-script",
-  ) as HTMLScriptElement | null;
-  const scriptSrc = script?.src || "";
-  const baseUrl = scriptSrc.substring(0, scriptSrc.lastIndexOf("/")) || "";
-  return baseUrl;
-};
-
 const defaultConfig: UnisightsConfig = {
   endpoint: process.env.INSIGHTS_ENDPOINT || "",
   debug: process.env.INSIGHTS_DEBUG === "true",
@@ -197,6 +187,10 @@ function touchSession() {
 let isInitialized = false;
 let flushTimer: number | undefined = undefined;
 let currentPageUrl = location.href; // Track current page URL
+let tracker: wasm.Tracker;
+let config: UnisightsConfig;
+let pending = false;
+let eventMap: Map<string, EventListener>;
 
 export async function init(
   userConfig: Partial<UnisightsConfig> = {},
@@ -222,17 +216,19 @@ export async function init(
 
   if (isBot) return;
 
-  const config = {
+  config = {
     ...defaultConfig,
     ...tagConfig,
     ...userConfig,
     insightsId: id,
   };
 
-  const tracker = new wasm.Tracker();
+  if (!config.insightsId) throw new Error("Missing insightsId in config");
+
+  tracker = new wasm.Tracker();
   const sessionId = getOrCreateSession();
   let start = performance.now();
-  let pending = false;
+  pending = false;
 
   tracker.setEncryptionKey(
     secret || process.env.INSIGHTS_SECRET,
@@ -249,7 +245,7 @@ export async function init(
   reportWebVitals(tracker, config);
   config.debug && console.log("[Insights] - Session ID:", sessionId);
 
-  const eventMap = new Map<string, EventListener>();
+  eventMap = new Map<string, EventListener>();
 
   if (config.trackClicks) {
     const clickHandler = (e: MouseEvent) => {
@@ -414,8 +410,28 @@ if (typeof window !== "undefined") {
   // Only expose init before analytics is ready
   window.unisights = {
     init: init,
-    log: () => console.warn("[Insights] - Call init() first"),
-    flushNow: () => {},
-    registerEvent: () => () => {},
+    log: (name: string, data: any) => {
+      try {
+        tracker.logCustomEvent(name, JSON.stringify(data));
+        touchSession();
+        pending = true;
+      } catch (e) {
+        console.error("[Insights] - log() error:", e);
+      }
+    },
+    flushNow: () => sendAnalytics(tracker, config, true),
+    registerEvent: (eventType, handler) => {
+      const bound = typeof handler === "function" ? handler : () => {};
+      window.addEventListener(eventType, bound);
+      eventMap.set(eventType, bound);
+      return (name: string, data: any) => {
+        try {
+          tracker.logCustomEvent(name, JSON.stringify(data));
+          pending = true;
+        } catch (e) {
+          console.error("[Insights] - Custom Event Error:", e);
+        }
+      };
+    },
   };
 }

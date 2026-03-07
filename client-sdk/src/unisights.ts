@@ -1,6 +1,4 @@
-// analytics-sdk.ts
 import initWasm, * as wasm from "../core/pkg/unisights_core.js";
-import type { AnalyticsConfig, EventHandler, DeviceData } from "./types";
 import {
   onCLS,
   onINP,
@@ -10,8 +8,15 @@ import {
   Metric as WebVital,
 } from "web-vitals";
 
-interface AnalyticsSDK {
-  init: (config: Partial<AnalyticsConfig>) => Promise<void>;
+declare global {
+  interface Window {
+    unisights?: Unisights;
+    unisightsq?: Array<() => void>;
+  }
+}
+
+interface Unisights {
+  init: (config: Partial<UnisightsConfig>) => Promise<void>;
   registerEvent: (
     eventType: string,
     handler: EventHandler,
@@ -20,11 +25,25 @@ interface AnalyticsSDK {
   log: (name: string, data: any) => void;
 }
 
-declare global {
-  interface Window {
-    AnalyticsSDK?: AnalyticsSDK;
-    AnalyticsQueue?: Array<() => void>;
-  }
+type EventHandler = ((event: Event) => void) | (() => (event: Event) => void);
+
+interface DeviceData {
+  userAgent: string;
+  platform: string;
+  os: string;
+  screenWidth: number;
+  screenHeight: number;
+  deviceType: string;
+}
+
+interface UnisightsConfig {
+  endpoint: string;
+  insightsId?: string;
+  debug?: boolean;
+  flushIntervalMs?: number;
+  trackPageViews?: boolean;
+  trackClicks?: boolean;
+  trackScroll?: boolean;
 }
 
 declare const process: {
@@ -46,17 +65,18 @@ const getScriptBaseUrl = () => {
   return baseUrl;
 };
 
-const defaultConfig: AnalyticsConfig = {
+const defaultConfig: UnisightsConfig = {
   endpoint: process.env.INSIGHTS_ENDPOINT || "",
   debug: process.env.INSIGHTS_DEBUG === "true",
   flushIntervalMs: 15000, // 15 seconds
-  wasmPath: `${getScriptBaseUrl()}/pkg/unisights_core_bg.wasm`,
   trackPageViews: true,
   trackClicks: true,
   trackScroll: true,
 };
 
-function reportWebVitals(tracker: wasm.Tracker, config: AnalyticsConfig) {
+await initWasm(`${getScriptBaseUrl()}/pkg/unisights_core_bg.wasm`);
+
+function reportWebVitals(tracker: wasm.Tracker, config: UnisightsConfig) {
   const report = (metric: WebVital) => {
     try {
       tracker.logWebVital(
@@ -166,8 +186,8 @@ let isInitialized = false;
 let flushTimer: number | undefined = undefined;
 let currentPageUrl = location.href; // Track current page URL
 
-async function initAnalytics(
-  userConfig: Partial<AnalyticsConfig> = {},
+export async function init(
+  userConfig: Partial<UnisightsConfig> = {},
 ): Promise<void> {
   if (isInitialized) return;
   isInitialized = true;
@@ -178,7 +198,7 @@ async function initAnalytics(
   const salt = tag?.getAttribute("data-salt")!;
   if (!id) throw new Error("Missing data-insights-id");
 
-  let tagConfig: Partial<AnalyticsConfig> = {};
+  let tagConfig: Partial<UnisightsConfig> = {};
   try {
     tagConfig = JSON.parse(tag?.getAttribute("data-analytics-config") || "{}");
   } catch (e) {
@@ -194,7 +214,6 @@ async function initAnalytics(
     insightsId: id,
   };
 
-  await initWasm(config.wasmPath);
   const tracker = new wasm.Tracker();
   const sessionId = getOrCreateSession();
   let start = performance.now();
@@ -330,35 +349,8 @@ async function initAnalytics(
     }
   }, config.flushIntervalMs);
 
-  window.AnalyticsSDK = {
-    init: initAnalytics,
-    registerEvent: (eventType, handler) => {
-      const bound = typeof handler === "function" ? handler : () => {};
-      window.addEventListener(eventType, bound);
-      eventMap.set(eventType, bound);
-      return (name: string, data: any) => {
-        try {
-          tracker.logCustomEvent(name, JSON.stringify(data));
-          pending = true;
-        } catch (e) {
-          console.error("[Insights] - Custom Event Error:", e);
-        }
-      };
-    },
-    flushNow: () => sendAnalytics(tracker, config, true),
-    log: (name: string, data: any) => {
-      try {
-        tracker.logCustomEvent(name, JSON.stringify(data));
-        touchSession();
-        pending = true;
-      } catch (e) {
-        console.error("[Insights] - log() error:", e);
-      }
-    },
-  };
-
-  if (Array.isArray(window.AnalyticsQueue)) {
-    window.AnalyticsQueue.splice(0).forEach((fn) => {
+  if (Array.isArray(window.unisightsq)) {
+    window.unisightsq.splice(0).forEach((fn) => {
       try {
         fn();
       } catch (e) {
@@ -370,7 +362,7 @@ async function initAnalytics(
 
 function sendAnalytics(
   tracker: wasm.Tracker,
-  config: AnalyticsConfig,
+  config: UnisightsConfig,
   final: boolean = false,
 ): void {
   try {
@@ -403,6 +395,12 @@ function sendAnalytics(
 }
 
 if (typeof window !== "undefined") {
-  window.AnalyticsQueue ||= [];
-  initAnalytics().catch((e) => console.error("[Insights] - Init Error:", e));
+  window.unisightsq ||= [];
+  // Only expose init before analytics is ready
+  window.unisights = {
+    init: init,
+    log: () => console.warn("[Insights] - Call init() first"),
+    flushNow: () => {},
+    registerEvent: () => () => {},
+  };
 }

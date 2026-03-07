@@ -1,15 +1,21 @@
 import * as esbuild from "esbuild";
 import * as dotenv from "dotenv";
+import { execSync } from "child_process";
+
 dotenv.config();
+
+// Generate type declarations
+execSync("tsc --emitDeclarationOnly --declaration --outDir dist", {
+  stdio: "inherit",
+});
 
 esbuild
   .build({
-    entryPoints: ["src/analytics.ts"],
+    entryPoints: ["src/unisights.ts"],
     bundle: true,
     minify: true,
     format: "esm",
     outfile: "dist/unisights.min.js",
-    // loader: { ".wasm": "binary" },
     define: {
       "process.env.INSIGHTS_ENDPOINT": JSON.stringify(
         process.env.INSIGHTS_ENDPOINT,

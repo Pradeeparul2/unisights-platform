@@ -5,3 +5,4 @@ dist
 target
 .env
 pnpm-lock.yaml
+*.tgz

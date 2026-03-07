@@ -1,0 +1,50 @@
+name: Build and Publish NPM
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Rust WASM
+        run: cd core && wasm-pack build --target web --release
+
+      - name: Build JS bundle
+        run: node build.mjs
+        env:
+          INSIGHTS_ENDPOINT: ${{ secrets.INSIGHTS_ENDPOINT }}
+          INSIGHTS_SECRET: ${{ secrets.INSIGHTS_SECRET }}
+          INSIGHTS_SALT: ${{ secrets.INSIGHTS_SALT }}
+          INSIGHTS_DEBUG: false
+
+      - name: Copy wasm pkg
+        run: |
+          mkdir -p dist
+          cp -r core/pkg dist/
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

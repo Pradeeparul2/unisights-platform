@@ -49,6 +49,17 @@ jobs:
           rm -f dist/pkg/package.json  # remove nested package.json
         working-directory: client-sdk
 
+      - name: Debug npm pack
+        run: |
+          cat package.json
+          echo "--- checking for ignore files ---"
+          ls -la
+          cat .gitignore || echo "no .gitignore"
+          echo "--- wasm file check ---"
+          file dist/pkg/unisights_core_bg.wasm
+          ls -la dist/pkg/
+        working-directory: client-sdk
+
       - name: Check dist contents
         run: |
           ls -R dist

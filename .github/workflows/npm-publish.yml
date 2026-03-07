@@ -47,6 +47,7 @@ jobs:
           mkdir -p dist
           cp -r core/pkg dist/
           rm -f dist/pkg/package.json  # remove nested package.json
+          rm -f dist/pkg/.gitignore
         working-directory: client-sdk
 
       - name: Debug npm pack

@@ -1,4 +1,5 @@
 import initWasm, * as wasm from "../core/pkg/unisights_core.js";
+import wasmBinary from "../core/pkg/unisights_core_bg.wasm";
 import {
   onCLS,
   onINP,
@@ -46,6 +47,10 @@ interface UnisightsConfig {
   trackScroll?: boolean;
 }
 
+declare module "../core/pkg/unisights_core_bg.wasm" {
+  const binary: Uint8Array;
+}
+
 declare const process: {
   env: {
     INSIGHTS_SECRET: string;
@@ -74,7 +79,14 @@ const defaultConfig: UnisightsConfig = {
   trackScroll: true,
 };
 
-await initWasm(`${getScriptBaseUrl()}/pkg/unisights_core_bg.wasm`);
+async function loadWasm(wasmPath?: string): Promise<void> {
+  if (wasmPath) {
+    await initWasm(wasmPath);
+  } else {
+    const binary = wasmBinary as unknown as Uint8Array;
+    await initWasm(binary);
+  }
+}
 
 function reportWebVitals(tracker: wasm.Tracker, config: UnisightsConfig) {
   const report = (metric: WebVital) => {
@@ -191,6 +203,9 @@ export async function init(
 ): Promise<void> {
   if (isInitialized) return;
   isInitialized = true;
+
+  // load wasm first
+  await loadWasm();
 
   const tag = document.querySelector("script[data-insights-id]");
   const id = tag?.getAttribute("data-insights-id");

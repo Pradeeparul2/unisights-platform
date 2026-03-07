@@ -42,13 +42,13 @@ jobs:
           INSIGHTS_SALT: ${{ secrets.INSIGHTS_SALT }}
           INSIGHTS_DEBUG: false
 
-      - name: Copy wasm pkg
-        run: |
-          mkdir -p dist
-          cp -r core/pkg dist/
-          rm -f dist/pkg/package.json  # remove nested package.json
-          rm -f dist/pkg/.gitignore
-        working-directory: client-sdk
+      # - name: Copy wasm pkg
+      #   run: |
+      #     mkdir -p dist
+      #     cp -r core/pkg dist/
+      #     rm -f dist/pkg/package.json  # remove nested package.json
+      #     rm -f dist/pkg/.gitignore
+      #   working-directory: client-sdk
 
       - name: Publish to NPM
         run: npm publish --access public

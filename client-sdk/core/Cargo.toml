@@ -22,3 +22,13 @@ sha2 = "0.10"
 rand = { version = "0.8", default-features = false, features = ["std", "getrandom"] }
 getrandom = { version = "0.2", features = ["js"] }
 generic-array = "0.14"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
+
+[profile.release]
+opt-level = "z"      # optimize for size
+lto = true           # link time optimization
+codegen-units = 1
+panic = "abort"      # removes panic unwinding code
+strip = true         # strip debug symbols

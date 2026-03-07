@@ -119,18 +119,15 @@ If you prefer to control when the SDK initializes, omit `data-insights-id` and c
 
 All options are passed to `init()` or via `data-analytics-config` on the script tag.
 
-| Option            | Type      | Default         | Description                           |
-| ----------------- | --------- | --------------- | ------------------------------------- |
-| `endpoint`        | `string`  | env var         | URL to send analytics events to       |
-| `insightsId`      | `string`  | from script tag | Your Unisights project ID             |
-| `secret`          | `string`  | from script tag | Encryption secret key                 |
-| `salt`            | `string`  | from script tag | Encryption salt                       |
-| `debug`           | `boolean` | `false`         | Log events to the console             |
-| `flushIntervalMs` | `number`  | `15000`         | How often to flush events (ms)        |
-| `trackPageViews`  | `boolean` | `true`          | Auto-track page views                 |
-| `trackClicks`     | `boolean` | `true`          | Auto-track click events               |
-| `trackScroll`     | `boolean` | `true`          | Auto-track scroll depth               |
-| `wasmPath`        | `string`  | inlined         | Override wasm binary path (CDN usage) |
+| Option            | Type      | Default         | Description                     |
+| ----------------- | --------- | --------------- | ------------------------------- |
+| `endpoint`        | `string`  | env var         | URL to send analytics events to |
+| `insightsId`      | `string`  | from script tag | Your Unisights project ID       |
+| `debug`           | `boolean` | `false`         | Log events to the console       |
+| `flushIntervalMs` | `number`  | `15000`         | How often to flush events (ms)  |
+| `trackPageViews`  | `boolean` | `true`          | Auto-track page views           |
+| `trackClicks`     | `boolean` | `true`          | Auto-track click events         |
+| `trackScroll`     | `boolean` | `true`          | Auto-track scroll depth         |
 
 ---
 

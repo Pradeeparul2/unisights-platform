@@ -46,11 +46,16 @@ jobs:
         run: |
           mkdir -p dist
           cp -r core/pkg dist/
+          rm -f dist/pkg/package.json  # remove nested package.json
         working-directory: client-sdk
 
       - name: Check dist contents
         run: |
           ls -R dist
+        working-directory: client-sdk
+
+      - name: Dry run pack
+        run: npm pack --dry-run
         working-directory: client-sdk
 
       - name: Publish to NPM

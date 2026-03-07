@@ -8,14 +8,14 @@ esbuild
     bundle: true,
     minify: true,
     format: "esm",
-    outfile: "dist/analytics-bundle.min.js",
+    outfile: "dist/unisights.min.js",
     loader: { ".wasm": "binary" },
     define: {
       "process.env.INSIGHTS_ENDPOINT": JSON.stringify(
-        process.env.INSIGHTS_ENDPOINT
+        process.env.INSIGHTS_ENDPOINT,
       ),
       "process.env.INSIGHTS_SECRET": JSON.stringify(
-        process.env.INSIGHTS_SECRET
+        process.env.INSIGHTS_SECRET,
       ),
       "process.env.INSIGHTS_SALT": JSON.stringify(process.env.INSIGHTS_SALT),
       "process.env.INSIGHTS_DEBUG": JSON.stringify(process.env.INSIGHTS_DEBUG),

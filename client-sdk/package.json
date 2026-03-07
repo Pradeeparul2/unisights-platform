@@ -1,6 +1,13 @@
 {
-  "name": "unisights-sdk",
+  "name": "@unisights/tracker",
+  "description": "Unisights browser event tracking script",
   "version": "0.0.1",
+  "main": "dist/unisights.min.js",
+  "author": {
+    "name": "Pradeep Arul",
+    "email": "pradeeparul2@gmail.com",
+    "url": "https://github.com/Pradeeparul2"
+  },
   "scripts": {
     "build": "tsc && node build.mjs && cpx \"core/pkg/**/*\" dist/pkg",
     "dev:build": "tsc && esbuild src/analytics.ts --bundle --outfile=dist/analytics.js --format=esm --sourcemap --loader:.wasm=binary --define:process.env.NODE_ENV='\"development\"' && cpx \"core/pkg/**/*\" dist/pkg",
@@ -19,5 +26,5 @@
     "live-server": "^1.2.2",
     "typescript": "^5.5.0"
   },
-  "license": "UNLICENSED"
+  "license": "MIT"
 }

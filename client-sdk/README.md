@@ -1,121 +1,232 @@
 # Unisights Client SDK
 
-Welcome to the **Unisights Client SDK**, the heart of the Unisights real-time analytics platform! This folder contains the WebAssembly (WASM)-powered tracking SDK, built with Rust and TypeScript, designed to efficiently and securely capture user interactions on your website or application. The SDK is lightweight, privacy-focused, and easy to integrate, enabling real-time event tracking with minimal performance impact.
+The Unisights Client SDK is a WebAssembly-powered analytics tracker built with Rust and TypeScript. It captures user interactions in the browser, encrypts data client-side, and sends it securely to your Unisights ingestion service — with minimal performance impact.
 
-## 🌟 Purpose
+---
 
-The Unisights Client SDK collects events (e.g., page views, clicks, custom actions) directly in the browser using WASM for speed and efficiency. It encrypts data in-browser before sending it to your Unisights ingestion service, ensuring privacy and compliance with regulations like GDPR. This SDK powers the client-side tracking for the Unisights platform, feeding data into Apache Kafka and Druid for real-time analytics.
+## ✨ Why Unisights
 
-## 📦 Folder Structure
+- **WASM Performance** — Rust-compiled WASM offers faster execution and lower overhead than traditional JS trackers
+- **Client-Side Encryption** — Data is encrypted in the browser before it ever leaves the client
+- **Lightweight** — ~86KB gzipped, including WASM binary and web vitals tracking
+- **Web Vitals Built-in** — Automatically tracks CLS, INP, LCP, FCP, and TTFB
+- **SPA Ready** — Handles `pushState`, `replaceState`, and `popstate` for React, Next.js, Vue, etc.
 
-```
-client-sdk/
-├── core/                 # Rust WASM core logic (compiled to analytics-bundle.min.js)
-├── src/                  # TypeScript wrapper and utilities
-├── package.json          # Node.js configuration for building
-├── tsconfig.json         # TypeScript configuration
-└── README.md             # You are here
-```
+---
 
-- **`core/`**: Contains the Rust source code compiled to WASM, providing the high-performance event collection logic.
-- **`src/`**: Includes TypeScript files that wrap the WASM module and expose a simple JavaScript API for developers.
-
-## 🚀 Getting Started
-
-### 1️⃣ Prerequisites
-
-- **Node.js** (>= 16.x) with npm
-- **Rust** (for building or modifying the WASM core)
-- **WasmPack** (install with `cargo install wasm-pack` for development)
-
-### 2️⃣ Install Dependencies
-
-Navigate to the `client-sdk` folder and install dependencies:
+## 📦 Installation
 
 ```bash
-npm install
+npm install @unisights/analytics
+# or
+pnpm add @unisights/analytics
+# or
+yarn add @unisights/analytics
 ```
 
-### 3️⃣ Build the SDK
+---
 
-Compile the Rust WASM code and bundle it with TypeScript:
+## 🚀 Usage
 
-```bash
-npm run build
-```
+### Option 1 — CDN / Script Tag (Recommended)
 
-This generates `analytics-bundle.min.js` in the `dist/` folder (or configure the output path as needed), ready for deployment.
-
-### 4️⃣ Integrate into Your HTML
-
-Inject the SDK into your website by adding the following `<script>` tag to your HTML file. Replace `your-insights-id` with your unique Unisights API key and adjust the `src` URL to point to your hosted SDK file (e.g., a CDN or local server):
+Add the script tag to your HTML `<head>`. The SDK auto-initializes and exposes `window.unisights`.
 
 ```html
 <script
   type="module"
   id="unisights-script"
-  defer
+  async
   data-insights-id="your-insights-id"
-  data-secret="..."
-  data-salt="..."
-  src="http://localhost:9005/analytics-bundle.min.js"
+  data-secret="your-secret"
+  data-salt="your-salt"
+  src="https://cdn.yourdomain.com/unisights.min.js"
 ></script>
 ```
 
-- **`type="module"`**: Ensures the SDK loads as an ES module.
-- **`id="unisights-script"`**: A unique identifier for the script tag.
-- **`defer`**: Loads the script asynchronously without blocking HTML parsing.
-- **`data-insights-id`**: Your Unisights API key for identifying the data source.
-- **`src`**: Path to the compiled `analytics-bundle.min.js` file.
+Then use it anywhere in your app:
 
-### 5️⃣ Usage
+```javascript
+// Wait for SDK to be ready
+window.unisights?.init();
 
-Once loaded, the SDK is available globally as `unisights`. You can track events like this:
+// Log a custom event
+window.unisights?.log("signup", { plan: "pro" });
+
+// Flush events immediately
+window.unisights?.flushNow();
+
+// Register a custom event handler
+const track = window.unisights?.registerEvent("click", (e) => {});
+track("button_click", { id: "submit-btn" });
+```
+
+#### Usage in React / Next.js
+
+```tsx
+import { useEffect } from "react";
+
+export default function Layout({ children }) {
+  useEffect(() => {
+    const script = document.getElementById(
+      "unisights-script",
+    ) as HTMLScriptElement;
+
+    const initSDK = () => {
+      window.unisights?.init().catch(console.error);
+    };
+
+    if (window.unisights) {
+      initSDK();
+    } else {
+      script?.addEventListener("load", initSDK);
+      return () => script?.removeEventListener("load", initSDK);
+    }
+  }, []);
+
+  return <>{children}</>;
+}
+```
+
+---
+
+### Option 2 — Manual Init (Script Tag)
+
+If you prefer to control when the SDK initializes, omit `data-insights-id` and call `init()` manually:
 
 ```html
-<script>
-  // Initialize the SDK (optional, auto-runs with data-insights-id)
-  unisights.init({ apiKey: "your-insights-id" });
+<script
+  type="module"
+  id="unisights-script"
+  async
+  data-insights-id="your-insights-id"
+  data-secret="your-secret"
+  data-salt="your-salt"
+  src="https://cdn.yourdomain.com/unisights.min.js"
+></script>
 
-  // Track a custom event
-  unisights.track("page_view", {
-    path: window.location.pathname,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Track a click event
-  document.querySelector("button").addEventListener("click", () => {
-    unisights.track("button_click", { element: "submit-btn" });
+<script type="module">
+  await window.unisights.init({
+    endpoint: "https://your-ingestion-endpoint.com/collect",
+    debug: true,
   });
 </script>
 ```
 
-- **`init()`**: Configures the SDK with your API key (optional if set in `data-insights-id`).
-- **`track(eventName, data)`**: Sends an event with a name and optional metadata to the Unisights ingestion service.
+---
+
+## ⚙️ Configuration
+
+All options are passed to `init()` or via `data-analytics-config` on the script tag.
+
+| Option            | Type      | Default         | Description                           |
+| ----------------- | --------- | --------------- | ------------------------------------- |
+| `endpoint`        | `string`  | env var         | URL to send analytics events to       |
+| `insightsId`      | `string`  | from script tag | Your Unisights project ID             |
+| `secret`          | `string`  | from script tag | Encryption secret key                 |
+| `salt`            | `string`  | from script tag | Encryption salt                       |
+| `debug`           | `boolean` | `false`         | Log events to the console             |
+| `flushIntervalMs` | `number`  | `15000`         | How often to flush events (ms)        |
+| `trackPageViews`  | `boolean` | `true`          | Auto-track page views                 |
+| `trackClicks`     | `boolean` | `true`          | Auto-track click events               |
+| `trackScroll`     | `boolean` | `true`          | Auto-track scroll depth               |
+| `wasmPath`        | `string`  | inlined         | Override wasm binary path (CDN usage) |
+
+---
+
+## 🧩 API Reference
+
+### `window.unisights.init(config?)`
+
+Initializes the SDK. Must be called before using other methods if auto-init is disabled.
+
+```javascript
+await window.unisights.init({
+  endpoint: "https://your-endpoint.com/collect",
+  debug: true,
+});
+```
+
+### `window.unisights.log(name, data)`
+
+Log a custom event with optional metadata.
+
+```javascript
+window.unisights.log("purchase", {
+  item: "pro-plan",
+  amount: 49.99,
+  currency: "USD",
+});
+```
+
+### `window.unisights.flushNow()`
+
+Immediately send all buffered events to the endpoint.
+
+```javascript
+window.unisights.flushNow();
+```
+
+### `window.unisights.registerEvent(eventType, handler)`
+
+Register a DOM event listener and get back a function to log custom events.
+
+```javascript
+const track = window.unisights.registerEvent("click", (e) => {
+  console.log("click captured", e);
+});
+
+// Later, log an event tied to this listener
+track("cta_click", { label: "Get Started" });
+```
+
+---
+
+## 🏗 TypeScript Support
+
+The package ships with type declarations. If you use the SDK via script tag and want `window.unisights` typed in your TypeScript project, install the package for types only:
+
+```bash
+npm install @unisights/analytics
+```
+
+TypeScript will automatically pick up the `Window` augmentation — no extra configuration needed.
+
+```typescript
+// Fully typed — no @ts-ignore needed
+window.unisights?.log("event", { data: "value" });
+```
+
+---
 
 ## 🛠 Development
 
-### Modify the WASM Core
+### Prerequisites
 
-- Edit Rust files in `core/`.
-- Rebuild with `npm run build` to regenerate `analytics-bundle.min.js`.
+- Node.js >= 16
+- Rust + Cargo
+- wasm-pack (`cargo install wasm-pack`)
 
-### Test Locally
+### Build
 
-- Serve the `dist/` folder with a local server (e.g., `npx serve dist` or use `http://localhost:9005`).
-- Open your HTML file in a browser and check the console for errors or use network tools to verify event transmission.
+```bash
+# Install dependencies
+pnpm install
 
-## ✨ Why This SDK Stands Out
+# Build WASM core + JS bundle
+pnpm build
+```
 
-- **WASM Performance**: Rust-compiled WASM offers faster execution and lower overhead than traditional JavaScript trackers.
-- **Privacy-Focused**: In-browser encryption protects user data before it leaves the client.
-- **Lightweight**: Minimal impact on page load times, ideal for high-traffic sites.
-- **Extensible**: Easy to add custom events or integrate with your analytics workflow.
+### Local Dev Server
 
-## 🌟 Support the Project
+```bash
+pnpm dev
+```
 
-If you find the Unisights Client SDK useful, give the main Unisights repository a ⭐ on GitHub at [https://github.com/<your-username>/unisights](https://github.com/<your-username>/unisights). Share it with your network or suggest improvements via GitHub Issues. More contributors will help us enhance this SDK!
+Serves `dist/` at `http://localhost:9005`.
+
+---
 
 ## 📜 License
 
-Licensed under the [MIT License](https://github.com/<your-username>/unisights/blob/main/LICENSE)—see the root `LICENSE` file for details.
+MIT — see [LICENSE](./LICENSE) for details.

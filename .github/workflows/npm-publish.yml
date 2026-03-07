@@ -27,12 +27,15 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        working-directory: client-sdk
 
       - name: Build Rust WASM
         run: cd core && wasm-pack build --target web --release
+        working-directory: client-sdk
 
       - name: Build JS bundle
         run: node build.mjs
+        working-directory: client-sdk
         env:
           INSIGHTS_ENDPOINT: ${{ secrets.INSIGHTS_ENDPOINT }}
           INSIGHTS_SECRET: ${{ secrets.INSIGHTS_SECRET }}
@@ -43,8 +46,10 @@ jobs:
         run: |
           mkdir -p dist
           cp -r core/pkg dist/
+        working-directory: client-sdk
 
       - name: Publish to NPM
         run: npm publish --access public
+        working-directory: client-sdk
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

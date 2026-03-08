@@ -1,6 +1,6 @@
-# Unisights Client SDK
+# Unisights analytics
 
-The Unisights analytics is a WebAssembly-powered analytics tracker built with Rust and TypeScript. It captures user interactions in the browser, encrypts data client-side, and sends it securely to your Unisights ingestion service — with minimal performance impact.
+The Unisights analytics is a WebAssembly-powered analytics tracker built with Rust and TypeScript. It captures user interactions in the browser, encrypts data client-side, and sends it securely to your ingestion service — with minimal performance impact.
 
 ---
 
@@ -38,11 +38,11 @@ Add the script tag to your HTML `<head>`. The SDK auto-initializes and exposes `
   id="unisights-script"
   async
   data-insights-id="your-insights-id"
-  data-secret="your-secret"
-  data-salt="your-salt"
   src="https://cdn.jsdelivr.net/npm/@unisights/analytics@X.X.X/dist/unisights.min.js"
 ></script>
 ```
+
+`data-insights-id` - Your Unique Insights Identifier for the website or application.
 
 Then use it anywhere in your app:
 
@@ -100,15 +100,13 @@ If you prefer to control when the SDK initializes, omit `data-insights-id` and c
   id="unisights-script"
   async
   data-insights-id="your-insights-id"
-  data-secret="your-secret"
-  data-salt="your-salt"
   src="https://cdn.jsdelivr.net/npm/@unisights/analytics@X.X.X/dist/unisights.min.js"
 ></script>
 
 <script type="module">
   await window.unisights.init({
     endpoint: "https://your-ingestion-endpoint.com/collect",
-    debug: true,
+    debug: false,
   });
 </script>
 ```
@@ -119,15 +117,14 @@ If you prefer to control when the SDK initializes, omit `data-insights-id` and c
 
 All options are passed to `init()` or via `data-analytics-config` on the script tag.
 
-| Option            | Type      | Default         | Description                     |
-| ----------------- | --------- | --------------- | ------------------------------- |
-| `endpoint`        | `string`  | env var         | URL to send analytics events to |
-| `insightsId`      | `string`  | from script tag | Your Unisights project ID       |
-| `debug`           | `boolean` | `false`         | Log events to the console       |
-| `flushIntervalMs` | `number`  | `15000`         | How often to flush events (ms)  |
-| `trackPageViews`  | `boolean` | `true`          | Auto-track page views           |
-| `trackClicks`     | `boolean` | `true`          | Auto-track click events         |
-| `trackScroll`     | `boolean` | `true`          | Auto-track scroll depth         |
+| Option            | Type      | Default | Description                     |
+| ----------------- | --------- | ------- | ------------------------------- |
+| `endpoint`        | `string`  | env var | URL to send analytics events to |
+| `debug`           | `boolean` | `false` | Log events to the console       |
+| `flushIntervalMs` | `number`  | `15000` | How often to flush events (ms)  |
+| `trackPageViews`  | `boolean` | `true`  | Auto-track page views           |
+| `trackClicks`     | `boolean` | `true`  | Auto-track click events         |
+| `trackScroll`     | `boolean` | `true`  | Auto-track scroll depth         |
 
 ---
 

@@ -52,18 +52,9 @@ declare module "../core/pkg/unisights_core_bg.wasm" {
   const binary: Uint8Array;
 }
 
-declare const process: {
-  env: {
-    INSIGHTS_SECRET: string;
-    INSIGHTS_SALT: string;
-    INSIGHTS_ENDPOINT?: string;
-    INSIGHTS_DEBUG?: string;
-  };
-};
-
 const defaultConfig: UnisightsConfig = {
-  endpoint: process.env.INSIGHTS_ENDPOINT || "",
-  debug: process.env.INSIGHTS_DEBUG === "true",
+  endpoint: "",
+  debug: false,
   encrypt: false,
   flushIntervalMs: 15000, // 15 seconds
   trackPageViews: true,

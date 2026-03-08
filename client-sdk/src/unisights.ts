@@ -274,7 +274,7 @@ export async function init(
 
   if (config.trackPageViews) {
     tracker.logEntryPage(location.href);
-    tracker.logPageView(location.href);
+    tracker.logPageView(location.href, document.title);
     if (config.debug)
       console.log("[Insights] - Entry page event:", location.href);
     pending = true;
@@ -303,7 +303,7 @@ export async function init(
       // );
       // Log new page view
       if (config.trackPageViews) {
-        tracker.logPageView(currentPageUrl);
+        tracker.logPageView(currentPageUrl, document.title);
         if (config.debug)
           console.log("[Insights] - Page view event:", currentPageUrl);
         touchSession();

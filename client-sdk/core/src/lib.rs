@@ -44,7 +44,11 @@ pub struct Tracker {
 #[serde(tag = "type", content = "data")]
 enum Event {
     Click { x: f64, y: f64, timestamp: f64 },
-    PageView { url: String, timestamp: f64 },
+    PageView {
+        page_location: String,
+        page_title: Option<String>,
+        timestamp: f64,
+    },
     WebVital {
         name: String,
         value: f64,
@@ -102,11 +106,14 @@ impl Tracker {
     }
 
     #[wasm_bindgen(js_name = logPageView)]
-    pub fn log_page_view(&mut self, url: String) {
+    pub fn log_page_view(&mut self, url: String, title: Option<String>) {
         self.events.push(Event::PageView {
-            url,
+            page_location: url.clone(),
+            page_title: title,
             timestamp: Date::now(),
         });
+
+        self.page_url = Some(url);
     }
 
     #[wasm_bindgen(js_name = logEntryPage)]

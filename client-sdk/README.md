@@ -196,34 +196,6 @@ window.unisights?.log("event", { data: "value" });
 
 ---
 
-## 🛠 Development
-
-### Prerequisites
-
-- Node.js >= 16
-- Rust + Cargo
-- wasm-pack (`cargo install wasm-pack`)
-
-### Build
-
-```bash
-# Install dependencies
-pnpm install
-
-# Build WASM core + JS bundle
-pnpm build
-```
-
-### Local Dev Server
-
-```bash
-pnpm dev
-```
-
-Serves `dist/` at `http://localhost:9005`.
-
----
-
 ## 📜 License
 
 MIT — see [LICENSE](./LICENSE) for details.

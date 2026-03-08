@@ -1,5 +1,4 @@
-import initWasm, * as wasm from "../core/pkg/unisights_core.js";
-import wasmBinary from "../core/pkg/unisights_core_bg.wasm";
+import initWasm, * as wasm from "@unisights/core";
 import {
   onCLS,
   onINP,
@@ -48,10 +47,6 @@ interface UnisightsConfig {
   trackScroll?: boolean;
 }
 
-declare module "../core/pkg/unisights_core_bg.wasm" {
-  const binary: Uint8Array;
-}
-
 declare const process: {
   env: {
     INSIGHTS_SECRET: string;
@@ -75,8 +70,7 @@ async function loadWasm(wasmPath?: string): Promise<void> {
   if (wasmPath) {
     await initWasm(wasmPath);
   } else {
-    const binary = wasmBinary as unknown as Uint8Array;
-    await initWasm(binary);
+    await initWasm();
   }
 }
 

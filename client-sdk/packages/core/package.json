@@ -1,0 +1,10 @@
+{
+  "name": "@unisights/core",
+  "version": "0.0.1",
+  "main": "pkg/unisights_core.js",
+  "module": "pkg/unisights_core.js",
+  "types": "pkg/unisights_core.d.ts",
+  "files": [
+    "pkg"
+  ]
+}

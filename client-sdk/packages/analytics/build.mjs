@@ -16,7 +16,9 @@ esbuild
     minify: true,
     format: "esm",
     outfile: "dist/unisights.min.js",
-    loader: { ".wasm": "binary" },
+    loader: {
+      ".wasm": "file",
+    },
     define: {
       "process.env.INSIGHTS_ENDPOINT": JSON.stringify(
         process.env.INSIGHTS_ENDPOINT,

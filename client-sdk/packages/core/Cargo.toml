@@ -1,6 +1,6 @@
 [package]
 name = "unisights_core"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 description = "WebAssembly analytics module for tracking clicks and scrolls"
 repository = "https://github.com/your-repo/wasm-analytics" # Optional
@@ -32,3 +32,6 @@ lto = true           # link time optimization
 codegen-units = 1
 panic = "abort"      # removes panic unwinding code
 strip = true         # strip debug symbols
+
+[package.metadata.wasm-pack]
+npm-name = "@unisights/core"

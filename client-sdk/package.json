@@ -1,7 +1,7 @@
 {
   "name": "@unisights/analytics",
   "description": "Unisights browser event tracking script",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "main": "dist/unisights.min.js",
   "module": "dist/unisights.min.js",
   "types": "dist/unisights.d.ts",
@@ -50,7 +50,6 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
-    "cpx": "^1.5.0",
     "tsup": "^8.5.1",
     "typescript": "^5.5.0"
   },

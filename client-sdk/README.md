@@ -1,3 +1,16 @@
+# Unisights analytics (Deprecated)
+
+> This package is deprecated and no longer maintained.
+> Please use the new and actively maintained package instead:
+
+👉 [https://www.npmjs.com/package/@pradeeparul2/unisights]@pradeeparul2/unisights
+
+```
+npm install @pradeeparul2/unisights
+```
+
+The new package includes improvements, bug fixes, and future updates.
+
 # Unisights analytics
 
 The Unisights analytics is a WebAssembly-powered analytics tracker built with Rust and TypeScript. It captures user interactions in the browser, encrypts data client-side, and sends it securely to your ingestion service — with minimal performance impact.

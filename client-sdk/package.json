@@ -1,7 +1,7 @@
 {
   "name": "@unisights/analytics",
   "description": "Unisights browser event tracking script",
-  "version": "0.0.11",
+  "version": "0.0.13",
   "main": "dist/unisights.min.js",
   "module": "dist/unisights.min.js",
   "types": "dist/unisights.d.ts",
@@ -39,7 +39,7 @@
     "url": "https://github.com/Pradeeparul2"
   },
   "scripts": {
-    "build": "tsc && node build.mjs && cpx \"core/pkg/**/*\" dist/pkg",
+    "build": "tsup",
     "dev:build": "tsc && esbuild src/unisights.ts --bundle --outfile=dist/unisights.js --format=esm --sourcemap --loader:.wasm=binary --define:process.env.NODE_ENV='\"development\"' && cpx \"core/pkg/**/*\" dist/pkg",
     "dev:watch": "node build.mjs --watch --define:process.env.NODE_ENV='\"development\"'",
     "serve": "live-server dist --no-browser --port=9005 --watch=dist --cors",
@@ -50,9 +50,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
-    "cpx": "^1.5.0",
-    "dotenv": "^17.0.1",
-    "esbuild": "^0.23.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.5.0"
   },
   "files": [

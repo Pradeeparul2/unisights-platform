@@ -65,13 +65,8 @@ jobs:
         working-directory: client-sdk
 
       - name: Build JS bundle
-        run: node build.mjs
+        run: pnpm run build
         working-directory: client-sdk
-        env:
-          INSIGHTS_ENDPOINT: ${{ secrets.INSIGHTS_ENDPOINT }}
-          INSIGHTS_SECRET: ${{ secrets.INSIGHTS_SECRET }}
-          INSIGHTS_SALT: ${{ secrets.INSIGHTS_SALT }}
-          INSIGHTS_DEBUG: false
 
       - name: Publish to NPM
         run: pnpm publish --access public --no-git-checks

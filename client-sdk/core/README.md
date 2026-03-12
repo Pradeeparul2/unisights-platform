@@ -48,7 +48,7 @@ cargo install wasm-pack
 Build the WebAssembly package (for frontend JS usage):
 
 ```bash
-wasm-pack build --target web --release
+wasm-pack build --release --target web
 ```
 
 This generates:

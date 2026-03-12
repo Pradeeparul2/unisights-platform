@@ -3,7 +3,7 @@
 > This package is deprecated and no longer maintained.
 > Please use the new and actively maintained package instead:
 
-👉 [https://www.npmjs.com/package/@pradeeparul2/unisights]@pradeeparul2/unisights
+👉 [@pradeeparul2/unisights](https://www.npmjs.com/package/@pradeeparul2/unisights)
 
 ```
 npm install @pradeeparul2/unisights

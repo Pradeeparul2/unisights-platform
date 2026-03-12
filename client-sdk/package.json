@@ -1,7 +1,7 @@
 {
   "name": "@unisights/analytics",
   "description": "Unisights browser event tracking script",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "main": "dist/unisights.min.js",
   "module": "dist/unisights.min.js",
   "types": "dist/unisights.d.ts",

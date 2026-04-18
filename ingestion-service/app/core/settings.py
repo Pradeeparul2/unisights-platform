@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # Kafka
     # ------------------------------------------------------------------
     kafka_brokers: List[str] = Field(
-        default=["kafka:9092"],
+        default=["localhost:9092"],
         env="KAFKA_BROKERS"
     )
     kafka_event_topic: str = Field(
@@ -52,19 +52,6 @@ class Settings(BaseSettings):
     geoip_db_path: str = Field(
         default="geo/GeoLite2-City.mmdb",
         env="GEOIP_DB_PATH"
-    )
-
-    # ------------------------------------------------------------------
-    # Encryption
-    # ------------------------------------------------------------------
-    encryption_enabled: bool = Field(default=True, env="ENCRYPTION_ENABLED")
-    encryption_passphrase: Optional[str] = Field(
-        default=None,
-        env="ENCRYPTION_PASSPHRASE"
-    )
-    encryption_salt: Optional[str] = Field(
-        default=None,
-        env="ENCRYPTION_SALT"
     )
 
     # ------------------------------------------------------------------
@@ -99,11 +86,6 @@ def get_settings() -> Settings:
     settings = Settings()
 
     # ---- Runtime validation ----
-    if settings.encryption_enabled:
-        if not settings.encryption_passphrase or not settings.encryption_salt:
-            raise RuntimeError(
-                "Encryption enabled but ENCRYPTION_PASSPHRASE or ENCRYPTION_SALT not set"
-            )
 
     if settings.ingestion_mode not in {"kafka", "stdout"}:
         raise RuntimeError(

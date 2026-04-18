@@ -2,8 +2,7 @@ import json
 import logging
 from typing import Dict, Any
 
-from kafka import KafkaProducer
-from kafka.errors import KafkaError
+from aiokafka import AIOKafkaProducer
 
 from app.core.settings import Settings
 from app.ingestion.sink import EventSink
@@ -19,27 +18,27 @@ class KafkaSink(EventSink):
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.producer: KafkaProducer | None = None
+        self.producer: AIOKafkaProducer | None = None
 
     async def start(self) -> None:
         """
         Initialize Kafka producer.
         """
-        logger.info("Initializing Kafka sink")
+        logger.info(f"Initializing Kafka sink, {self.settings.kafka_brokers}")
 
         try:
-            self.producer = KafkaProducer(
+            self.producer = AIOKafkaProducer(
                 bootstrap_servers=self.settings.kafka_brokers,
                 value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-                retries=self.settings.kafka_retries,
-                batch_size=self.settings.kafka_batch_size,
+                max_batch_size=self.settings.kafka_batch_size,
                 linger_ms=self.settings.kafka_linger_ms,
             )
+            await self.producer.start()
             logger.info(
                 "Kafka producer ready",
                 extra={"brokers": self.settings.kafka_brokers},
             )
-        except KafkaError as e:
+        except Exception as e:
             logger.exception("Failed to initialize Kafka producer")
             raise RuntimeError("Kafka initialization failed") from e
 
@@ -49,7 +48,7 @@ class KafkaSink(EventSink):
         """
         if self.producer:
             logger.info("Closing Kafka producer")
-            self.producer.close()
+            await self.producer.stop()
             self.producer = None
 
     async def publish_event(
@@ -65,15 +64,12 @@ class KafkaSink(EventSink):
             raise RuntimeError("Kafka producer not initialized")
 
         try:
-            future = self.producer.send(
+            await self.producer.send_and_wait(
                 topic=topic,
                 key=key.encode("utf-8"),
                 value=event,
             )
-            future.add_errback(
-                lambda e: logger.error(f"Kafka event publish failed: {e}")
-            )
-        except KafkaError as e:
+        except Exception as e:
             logger.error("Kafka publish_event error", exc_info=e)
 
     async def publish_session(
@@ -89,13 +85,10 @@ class KafkaSink(EventSink):
             raise RuntimeError("Kafka producer not initialized")
 
         try:
-            future = self.producer.send(
+            await self.producer.send_and_wait(
                 topic=topic,
                 key=key.encode("utf-8"),
                 value=session,
             )
-            future.add_errback(
-                lambda e: logger.error(f"Kafka session publish failed: {e}")
-            )
-        except KafkaError as e:
+        except Exception as e:
             logger.error("Kafka publish_session error", exc_info=e)

@@ -9,37 +9,20 @@ volumes:
   superset_home: {} # For Superset home directory
 
 services:
-  # Client SDK
-  sdk-service:
-    container_name: unisights-sdk
-    build:
-      context: ../client-sdk
-      dockerfile: Dockerfile
-      args:
-        INSIGHTS_ENDPOINT: ${INSIGHTS_ENDPOINT}
-        INSIGHTS_SECRET: ${INSIGHTS_SECRET}
-        INSIGHTS_SALT: ${INSIGHTS_SALT}
-        INSIGHTS_DEBUG: ${INSIGHTS_DEBUG}
-    env_file: *env_file
-    ports:
-      - "9005:9005"
-    command: ["serve", "-s", "dist", "-l", "9005", "--cors"]
-    depends_on:
-      ingestion-service:
-        condition: service_healthy
-    networks:
-      - unisights-network
-
   # Kafka with KRaft
   kafka:
-    image: docker.io/apache/kafka:4.2.0-rc3
+    image: docker.io/apache/kafka:4.2.0
     container_name: kafka
     env_file: *env_file
+    ports:
+      - "9092:9092"
+      - "9093:9093"
     environment:
       # KRaft settings
       - KAFKA_NODE_ID=${KAFKA_NODE_ID:-0}
       - KAFKA_PROCESS_ROLES=${KAFKA_PROCESS_ROLES:-broker,controller}
       - KAFKA_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS:-0@kafka:9093}
+      - CLUSTER_ID=${KAFKA_CLUSTER_ID:-MkQkQzc4NzAxNTUyNDU3MDQ1}
       # Listeners
       - KAFKA_LISTENERS=${KAFKA_LISTENERS}
       - KAFKA_ADVERTISED_LISTENERS=${KAFKA_ADVERTISED_LISTENERS}

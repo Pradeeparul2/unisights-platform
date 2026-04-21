@@ -2,7 +2,7 @@
 set -e
 
 # Install dependencies
-pip install pydruid pillow 'setuptools<81'
+# pip install pydruid pillow 'setuptools<81'
 
 # Upgrade database schema
 superset db upgrade

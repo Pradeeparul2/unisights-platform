@@ -30,11 +30,11 @@ class Settings(BaseSettings):
         env="KAFKA_BROKERS"
     )
     kafka_event_topic: str = Field(
-        default="analytics.events",
+        default="events-stream",
         env="EVENT_TOPIC"
     )
     kafka_session_topic: str = Field(
-        default="analytics.sessions",
+        default="sessions-stream",
         env="SESSION_TOPIC"
     )
     kafka_retries: int = Field(default=5, env="KAFKA_RETRIES")

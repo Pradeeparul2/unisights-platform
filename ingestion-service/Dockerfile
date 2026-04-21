@@ -18,11 +18,9 @@ COPY . .
 ENV KAFKA_BROKERS=["localhost:9094"] \
     GEOIP_DB_PATH=geo/GeoLite2-City.mmdb \
     PORT=8000 \
-    ENCRYPTION_PASSPHRASE=insights-secret \
-    ENCRYPTION_SALT=analytics-salt \
     EVENT_TOPIC=events-stream \
     SESSION_TOPIC=sessions-stream \
-    INGESTION_MODE=stdout
+    INGESTION_MODE=kafka
 
 # Expose port and run
 EXPOSE 8000

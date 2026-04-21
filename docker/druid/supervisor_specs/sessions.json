@@ -8,7 +8,82 @@
       },
       "topic": "sessions-stream",
       "inputFormat": {
-        "type": "json"
+        "type": "json",
+        "flattenSpec": {
+          "useFieldDiscovery": true,
+          "fields": [
+            {
+              "type": "path",
+              "name": "device_type",
+              "expr": "$.device.deviceType"
+            },
+            {
+              "type": "path",
+              "name": "os",
+              "expr": "$.device.os"
+            },
+            {
+              "type": "path",
+              "name": "platform",
+              "expr": "$.device.platform"
+            },
+            {
+              "type": "path",
+              "name": "screen_width",
+              "expr": "$.device.screenWidth"
+            },
+            {
+              "type": "path",
+              "name": "screen_height",
+              "expr": "$.device.screenHeight"
+            },
+            {
+              "type": "path",
+              "name": "utm_source",
+              "expr": "$.utm.utm_source"
+            },
+            {
+              "type": "path",
+              "name": "utm_medium",
+              "expr": "$.utm.utm_medium"
+            },
+            {
+              "type": "path",
+              "name": "utm_campaign",
+              "expr": "$.utm.utm_campaign"
+            },
+            {
+              "type": "path",
+              "name": "utm_term",
+              "expr": "$.utm.utm_term"
+            },
+            {
+              "type": "path",
+              "name": "utm_content",
+              "expr": "$.utm.utm_content"
+            },
+            {
+              "type": "path",
+              "name": "geo_country",
+              "expr": "$.geo.country"
+            },
+            {
+              "type": "path",
+              "name": "geo_city",
+              "expr": "$.geo.city"
+            },
+            {
+              "type": "path",
+              "name": "geo_lat",
+              "expr": "$.geo.lat"
+            },
+            {
+              "type": "path",
+              "name": "geo_lon",
+              "expr": "$.geo.lon"
+            }
+          ]
+        }
       },
       "useEarliestOffset": true,
       "taskCount": 1
@@ -53,7 +128,6 @@
           "utm_campaign",
           "utm_term",
           "utm_content",
-          "ip",
           "geo_country",
           "geo_city",
           "geo_lat",
@@ -80,34 +154,9 @@
       "granularitySpec": {
         "type": "hashed",
         "segmentGranularity": "hour",
-        "queryGranularity": "minute",
-        "rollup": true,
-        "partitionDimensions": ["asset_id"]
-      },
-      "flattenSpec": {
-        "useFieldDiscovery": true,
-        "fields": [
-          {
-            "type": "path",
-            "name": "geo_country",
-            "expr": "$.geo.country"
-          },
-          {
-            "type": "path",
-            "name": "geo_city",
-            "expr": "$.geo.city"
-          },
-          {
-            "type": "path",
-            "name": "geo_lat",
-            "expr": "$.geo.lat"
-          },
-          {
-            "type": "path",
-            "name": "geo_lon",
-            "expr": "$.geo.lon"
-          }
-        ]
+        "queryGranularity": "none",
+        "rollup": false,
+        "partitionDimensions": ["asset_id", "session_id"]
       }
     }
   }

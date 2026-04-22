@@ -1,16 +1,22 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import asyncio
 import logging
+from dataclasses import asdict
 
 from app.core.settings import get_settings
 from app.core.logging import setup_logging
 from app.ingestion.factory import create_sink
 from app.geo.factory import create_geo_provider
-from app.crypto.factory import create_decryptor
-
-from app.api.routes.collect import router as collect_router
+from app.utils.ip import get_client_ip
+from app.enrichers.session import SessionEnricher
+from app.enrichers.event import EventEnricher
+from app.validators.payload import PayloadValidator
+from app.validators.event import EventValidator
 from app.api.routes.health import router as health_router
+from unisights import UnisightsOptions
+from unisights.fastapi import unisights_fastapi
 
 # -------------------------------------------------------------------
 # Logging
@@ -36,13 +42,9 @@ async def lifespan(app: FastAPI):
     # Initialize geo provider (MaxMind / none)
     geo_provider = create_geo_provider(settings)
 
-    # Initialize decryptor (AES-GCM / none)
-    decryptor = create_decryptor(settings)
-
     # Store shared dependencies on app.state
     app.state.sink = sink
     app.state.geo_provider = geo_provider
-    app.state.decryptor = decryptor
 
     logger.info(
         "Service started",
@@ -62,6 +64,93 @@ async def lifespan(app: FastAPI):
 
 
 # -------------------------------------------------------------------
+# Unisights event handler
+# -------------------------------------------------------------------
+
+async def handle_unisights_event(payload, request: Request):
+    sink = request.app.state.sink
+    geo_provider = request.app.state.geo_provider
+
+    # Unisights payload objects expose `.data`; support both raw dicts and typed payloads.
+    request_payload = getattr(payload, "data", payload)
+
+    if hasattr(request_payload, "dict"):
+        request_payload = request_payload.dict()
+
+    decrypted = request_payload
+
+    if hasattr(decrypted, '__dataclass_fields__'):
+        decrypted = asdict(decrypted)
+    client_ip = get_client_ip(request)
+    geo = geo_provider.lookup(client_ip)
+
+    session_enricher = SessionEnricher(
+        user_agent=request.headers.get("user-agent"),
+        geo=geo,
+    )
+
+    session_meta = session_enricher.enrich(decrypted)
+
+    event_enricher = EventEnricher()
+    event_validator = EventValidator()
+    published_events = 0
+    event_tasks = []
+
+    for event in decrypted["events"]:
+        try:
+            event_validator.validate(event)
+        except ValueError:
+            logger.debug("Skipping invalid event", extra={"event": event})
+            continue
+
+        enriched_event = event_enricher.enrich(
+            {
+                "event": event,
+                "base": decrypted,
+            }
+        )
+
+        event_tasks.append(
+            sink.publish_event(
+                settings.kafka_event_topic,
+                decrypted["asset_id"],
+                enriched_event,
+            )
+        )
+
+        published_events += 1
+
+    # Publish all events concurrently
+    if event_tasks:
+        await asyncio.gather(*event_tasks, return_exceptions=True)
+
+    await sink.publish_session(
+        settings.kafka_session_topic,
+        decrypted["asset_id"],
+        session_meta,
+    )
+
+    logger.info(
+        "Analytics payload ingested",
+        extra={
+            "asset_id": decrypted["asset_id"],
+            "session_id": decrypted["session_id"],
+            "events": published_events,
+            "geo": geo.get("country") if geo else None,
+        },
+    )
+
+    return {"status": "accepted", "events": published_events}
+
+options = UnisightsOptions(
+    path="/collect/events",
+    handler=handle_unisights_event,
+    validate_schema=True,
+)
+
+unisights_router = unisights_fastapi(options)
+
+# -------------------------------------------------------------------
 # FastAPI app
 # -------------------------------------------------------------------
 
@@ -76,7 +165,7 @@ app = FastAPI(
 # Routers
 # -------------------------------------------------------------------
 
-app.include_router(collect_router, prefix="/collect", tags=["collect"])
+app.include_router(unisights_router)
 app.include_router(health_router, tags=["health"])
 
 # -------------------------------------------------------------------

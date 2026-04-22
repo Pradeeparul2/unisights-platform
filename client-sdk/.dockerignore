@@ -1,6 +1,0 @@
-node_modules
-pkg
-package-lock.json
-dist
-target
-.env

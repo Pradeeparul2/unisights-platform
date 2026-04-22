@@ -9,37 +9,20 @@ volumes:
   superset_home: {} # For Superset home directory
 
 services:
-  # Client SDK
-  sdk-service:
-    container_name: unisights-sdk
-    build:
-      context: ../client-sdk
-      dockerfile: Dockerfile
-      args:
-        INSIGHTS_ENDPOINT: ${INSIGHTS_ENDPOINT}
-        INSIGHTS_SECRET: ${INSIGHTS_SECRET}
-        INSIGHTS_SALT: ${INSIGHTS_SALT}
-        INSIGHTS_DEBUG: ${INSIGHTS_DEBUG}
-    env_file: *env_file
-    ports:
-      - "9005:9005"
-    command: ["serve", "-s", "dist", "-l", "9005", "--cors"]
-    depends_on:
-      ingestion-service:
-        condition: service_healthy
-    networks:
-      - unisights-network
-
   # Kafka with KRaft
   kafka:
-    image: docker.io/apache/kafka:4.2.0-rc3
+    image: docker.io/apache/kafka:4.2.0
     container_name: kafka
     env_file: *env_file
+    ports:
+      - "9092:9092"
+      - "9093:9093"
     environment:
       # KRaft settings
       - KAFKA_NODE_ID=${KAFKA_NODE_ID:-0}
       - KAFKA_PROCESS_ROLES=${KAFKA_PROCESS_ROLES:-broker,controller}
       - KAFKA_CONTROLLER_QUORUM_VOTERS=${KAFKA_CONTROLLER_QUORUM_VOTERS:-0@kafka:9093}
+      - CLUSTER_ID=${KAFKA_CLUSTER_ID:-MkQkQzc4NzAxNTUyNDU3MDQ1}
       # Listeners
       - KAFKA_LISTENERS=${KAFKA_LISTENERS}
       - KAFKA_ADVERTISED_LISTENERS=${KAFKA_ADVERTISED_LISTENERS}
@@ -92,11 +75,9 @@ services:
       KAFKA_BROKERS: ${INGESTION_KAFKA_BROKERS:-["kafka:9092"]}
       GEOIP_DB_PATH: /app/geo/GeoLite2-City.mmdb
       PORT: ${INGESTION_SERVICE_PORT:-8000}
-      ENCRYPTION_PASSPHRASE: ${INSIGHTS_SECRET}
-      ENCRYPTION_SALT: ${INSIGHTS_SALT}
       EVENT_TOPIC: ${INGESTION_EVENT_TOPIC:-events-stream}
       SESSION_TOPIC: ${INGESTION_SESSION_TOPIC:-sessions-stream}
-      INGESTION_MODE: ${INGESTION_MODE:-stdout}
+      INGESTION_MODE: ${INGESTION_MODE:-kafka}
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     depends_on:
       kafka:
@@ -381,7 +362,9 @@ services:
   #     - "FLINK_PROPERTIES=jobmanager.rpc.address:flink-jobmanager"
 
   superset:
-    image: apache/superset:latest
+    build:
+      context: ./superset
+      dockerfile: Dockerfile
     container_name: superset_app
     environment:
       - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY:-FoolishSecretKey}

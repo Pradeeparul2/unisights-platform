@@ -15,7 +15,7 @@
             {
               "type": "path",
               "name": "device_type",
-              "expr": "$.device.deviceType"
+              "expr": "$.device.device_type"
             },
             {
               "type": "path",
@@ -30,12 +30,12 @@
             {
               "type": "path",
               "name": "screen_width",
-              "expr": "$.device.screenWidth"
+              "expr": "$.device.screen_width"
             },
             {
               "type": "path",
               "name": "screen_height",
-              "expr": "$.device.screenHeight"
+              "expr": "$.device.screen_height"
             },
             {
               "type": "path",

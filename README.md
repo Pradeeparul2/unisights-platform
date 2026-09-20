@@ -16,6 +16,13 @@ in-browser event tracking and a real-time processing and visualization pipeline.
 The platform can track user sessions on high-traffic sites or analyze web
 applications while keeping data ownership with the operator.
 
+## SDKs and Analytics Packages
+
+This repository contains the deployable analytics platform: ingestion,
+streaming, storage, dashboards, and Docker/Kubernetes operations. Client SDKs,
+WebAssembly tracking packages, and shared analytics package contracts live in
+the [Unisights packages repository](https://github.com/Pradeeparul2/unisights).
+
 ## Repository Components
 
 - `ingestion-service/`: FastAPI service for receiving, validating, enriching,

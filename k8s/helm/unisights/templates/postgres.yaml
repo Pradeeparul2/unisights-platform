@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: unisights-postgres
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.componentLabels" "postgres" | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: unisights-postgres
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.componentLabels" "postgres" | nindent 4 }}
+spec:
+  serviceName: unisights-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "unisights.secretName" . }}
+                  key: POSTGRES_PASSWORD
+            - name: SUPERSET_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "unisights.secretName" . }}
+                  key: SUPERSET_DB_USER
+            - name: SUPERSET_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "unisights.secretName" . }}
+                  key: SUPERSET_DB_PASSWORD
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            {{- toYaml .Values.postgres.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: init-script
+          configMap:
+            name: unisights-postgres-init
+            defaultMode: 0755
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.storageClass }}
+        storageClassName: {{ .Values.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgres.storage.size }}

@@ -1,0 +1,121 @@
+{{- $indexer := .Values.druid.indexer | default dict }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unisights-druid-env
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+data:
+  DRUID_SINGLE_NODE_CONF: "micro-quickstart"
+  druid_emitter_logging_logLevel: "debug"
+  druid_extensions_loadList: {{ .Values.druid.extensionsLoadList | quote }}
+  druid_zk_service_host: "unisights-zookeeper"
+  druid_metadata_storage_type: "postgresql"
+  druid_metadata_storage_connector_connectURI: "jdbc:postgresql://unisights-postgres:5432/druid"
+  druid_metadata_storage_connector_user: {{ .Values.postgres.user | quote }}
+  druid_indexer_runner_javaOptsArray: {{ $indexer.javaOptsArray | default "[\"-server\", \"-Xmx512m\", \"-Xms512m\", \"-XX:MaxDirectMemorySize=512m\", \"-Duser.timezone=UTC\", \"-Dfile.encoding=UTF-8\", \"-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager\"]" | quote }}
+  druid_indexer_fork_property_druid_processing_buffer_sizeBytes: {{ $indexer.processingBufferSize | default "64MiB" | quote }}
+  druid_worker_capacity: {{ $indexer.taskCapacity | default 1 | quote }}
+  druid_storage_type: "s3"
+  druid_storage_bucket: {{ .Values.druid.storage.bucket | quote }}
+  druid_storage_baseKey: {{ .Values.druid.storage.baseKey | quote }}
+  druid_s3_endpoint_url: "http://unisights-minio:9000"
+  druid_s3_protocol: "http"
+  druid_storage_disableAcl: "true"
+  druid_s3_enablePathStyleAccess: "true"
+  druid_s3_forceGlobalBucketAccessEnabled: "false"
+  druid_indexer_logs_type: "s3"
+  druid_indexer_logs_s3Bucket: {{ .Values.druid.storage.bucket | quote }}
+  druid_indexer_logs_s3Prefix: "druid/stage/indexing-logs"
+  druid_indexer_logs_disableAcl: "true"
+  druid_msq_intermediate_storage_enable: "true"
+  druid_msq_intermediate_storage_type: "s3"
+  druid_msq_intermediate_storage_bucket: {{ .Values.druid.storage.bucket | quote }}
+  druid_msq_intermediate_storage_prefix: "druid/intermediate"
+  druid_msq_intermediate_storage_tempDir: "/tmp/druid-msq"
+  druid_processing_numThreads: "2"
+  druid_processing_numMergeBuffers: "2"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unisights-ingestion-env
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+data:
+  KAFKA_BROKERS: '["unisights-kafka:9092"]'
+  GEOIP_DB_PATH: "/app/geo/GeoLite2-City.mmdb"
+  PORT: {{ .Values.ingestionService.port | quote }}
+  EVENT_TOPIC: {{ .Values.ingestionService.eventTopic | quote }}
+  SESSION_TOPIC: {{ .Values.ingestionService.sessionTopic | quote }}
+  INGESTION_MODE: {{ .Values.ingestionService.ingestionMode | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unisights-postgres-init
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+data:
+  init-db.sh: |
+{{ .Files.Get "files/scripts/postgres-init-db.sh" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unisights-superset-init
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+data:
+  init-superset.sh: |
+{{ .Files.Get "files/scripts/superset-init.sh" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unisights-superset-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+data:
+  superset_config.py: |
+{{ .Files.Get "files/scripts/superset_config.py" | indent 4 }}
+{{- if .Values.superset.dashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unisights-superset-dashboard
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+binaryData:
+  main_dashboard.zip: {{ .Files.Get "files/superset/main_dashboard.zip" | b64enc | quote }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unisights-supervisor-specs
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+data:
+  events.json: |
+{{ .Files.Get "files/supervisor_specs/events.json" | replace "__TASK_DURATION__" (.Values.druid.supervisorTaskDuration | default "PT5M") | indent 4 }}
+  sessions.json: |
+{{ .Files.Get "files/supervisor_specs/sessions.json" | replace "__TASK_DURATION__" (.Values.druid.supervisorTaskDuration | default "PT5M") | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unisights-supervisor-script
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+data:
+  submit_supervisor_specs.sh: |
+{{ .Files.Get "files/scripts/submit_supervisor_specs.sh" | indent 4 }}

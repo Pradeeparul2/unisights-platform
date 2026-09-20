@@ -1,0 +1,48 @@
+{{- if .Values.supervisorDeployer.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: unisights-supervisor-deployer
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.componentLabels" "supervisor-deployer" | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: supervisor-deployer
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-deps
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z unisights-druid-coordinator {{ (index .Values.druid.roles "coordinator").port }}; do echo waiting for coordinator; sleep 5; done
+              until nc -z unisights-kafka 9092; do echo waiting for kafka; sleep 5; done
+              until nc -z unisights-ingestion-service {{ .Values.ingestionService.port }}; do echo waiting for ingestion-service; sleep 5; done
+      containers:
+        - name: supervisor-deployer
+          image: {{ .Values.supervisorDeployer.image }}
+          command: ["sh", "/scripts/submit_supervisor_specs.sh"]
+          volumeMounts:
+            - name: supervisor-specs
+              mountPath: /supervisor_specs
+            - name: supervisor-script
+              mountPath: /scripts
+      volumes:
+        - name: supervisor-specs
+          configMap:
+            name: unisights-supervisor-specs
+        - name: supervisor-script
+          configMap:
+            name: unisights-supervisor-script
+            defaultMode: 0755
+{{- end }}

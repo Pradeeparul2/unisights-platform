@@ -1,0 +1,15 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+{{- range $component := list "ingestion-service" "druid-broker" "druid-router" }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: unisights-{{ $component }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $component }}
+{{- end }}
+{{- end }}

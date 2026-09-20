@@ -1,0 +1,229 @@
+namespace: unisights
+
+image:
+  pullPolicy: IfNotPresent
+
+storageClass: "" # empty = cluster default StorageClass
+
+# ---------------------------------------------------------------------------
+# Kafka (KRaft mode, single broker)
+# ---------------------------------------------------------------------------
+kafka:
+  image: docker.io/apache/kafka:4.2.0
+  nodeId: "0"
+  clusterId: "MkQkQzc4NzAxNTUyNDU3MDQ1"
+  processRoles: "broker,controller"
+  controllerQuorumVoters: "0@unisights-kafka-0.unisights-kafka-headless:9093"
+  listeners: "PLAINTEXT://:9092,CONTROLLER://:9093"
+  advertisedListeners: "PLAINTEXT://unisights-kafka-0.unisights-kafka-headless:9092"
+  listenerSecurityProtocolMap: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+  controllerListenerNames: "CONTROLLER"
+  interBrokerListenerName: "PLAINTEXT"
+  autoCreateTopics: "true"
+  storage:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: "500m"
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+kafdrop:
+  enabled: true
+  image: obsidiandynamics/kafdrop
+  serverPort: 9003
+  jvmOpts: "-Xms32m -Xmx64m"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: 128Mi
+    limits:
+      cpu: "250m"
+      memory: 256Mi
+
+# ---------------------------------------------------------------------------
+# Zookeeper (required by Druid)
+# ---------------------------------------------------------------------------
+zookeeper:
+  image: zookeeper:3.5.10
+  myId: "1"
+  storage:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: "250m"
+      memory: 512Mi
+    limits:
+      cpu: "500m"
+      memory: 1Gi
+
+# ---------------------------------------------------------------------------
+# Postgres (shared metadata store: Druid + Superset)
+# ---------------------------------------------------------------------------
+postgres:
+  image: postgres:16
+  user: postgres
+  storage:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: "250m"
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# ---------------------------------------------------------------------------
+# MinIO (Druid deep storage)
+# ---------------------------------------------------------------------------
+minio:
+  image: quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z
+  storage:
+    size: 20Gi
+  resources:
+    requests:
+      cpu: "250m"
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# ---------------------------------------------------------------------------
+# Druid (single image, multiple roles run as separate Deployments)
+# ---------------------------------------------------------------------------
+druid:
+  image: apache/druid:33.0.0
+  supervisorTaskDuration: "PT5M" # Use PT1H or longer for production workloads.
+  indexer:
+    taskCapacity: 2
+    javaOptsArray: '["-server", "-Xmx512m", "-Xms512m", "-XX:MaxDirectMemorySize=512m", "-Duser.timezone=UTC", "-Dfile.encoding=UTF-8", "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"]'
+    processingBufferSize: 64MiB
+  extensionsLoadList: '["druid-kafka-indexing-service","druid-histogram","druid-datasketches","druid-lookups-cached-global","postgresql-metadata-storage","druid-multi-stage-query","druid-s3-extensions"]'
+  storage:
+    bucket: druid-segments
+    baseKey: druid/segments
+  roles:
+    coordinator:
+      command: coordinator
+      replicas: 1
+      port: 8081
+      persistent: true
+      storageSize: 10Gi
+      resources:
+        requests: { cpu: "500m", memory: 1Gi }
+        limits: { cpu: "1", memory: 2Gi }
+    broker:
+      command: broker
+      replicas: 1
+      port: 8082
+      persistent: false
+      resources:
+        requests: { cpu: "500m", memory: 1Gi }
+        limits: { cpu: "1", memory: 2Gi }
+    historical:
+      command: historical
+      replicas: 1
+      port: 8083
+      persistent: true
+      storageSize: 20Gi
+      resources:
+        requests: { cpu: "500m", memory: 1Gi }
+        limits: { cpu: "1", memory: 2Gi }
+    middlemanager:
+      command: middleManager
+      replicas: 1
+      port: 8091
+      persistent: true
+      storageSize: 10Gi
+      resources:
+        requests: { cpu: "1", memory: 2Gi }
+        limits: { cpu: "2", memory: 4Gi }
+    router:
+      command: router
+      replicas: 1
+      port: 8888
+      persistent: false
+      resources:
+        requests: { cpu: "250m", memory: 512Mi }
+        limits: { cpu: "500m", memory: 1Gi }
+
+# ---------------------------------------------------------------------------
+# ingestion-service (custom app)
+# ---------------------------------------------------------------------------
+ingestionService:
+  image:
+    repository: "" # set to your registry, e.g. ghcr.io/org/ingestion-service
+    tag: latest
+  replicas: 2
+  port: 8000
+  eventTopic: events-stream
+  sessionTopic: sessions-stream
+  ingestionMode: kafka
+  resources:
+    requests:
+      cpu: "250m"
+      memory: 256Mi
+    limits:
+      cpu: "500m"
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+# ---------------------------------------------------------------------------
+# Superset
+# ---------------------------------------------------------------------------
+superset:
+  image: "" # your Superset build, e.g. built from docker/superset/Dockerfile
+  storage:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: "500m"
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  admin:
+    username: admin
+    email: admin@example.com
+  dashboard:
+    enabled: true # embeds files/superset/main_dashboard.zip via ConfigMap and imports it on startup
+
+# ---------------------------------------------------------------------------
+# Post-install job: register Kafka -> Druid supervisors
+# ---------------------------------------------------------------------------
+supervisorDeployer:
+  enabled: true
+  image: curlimages/curl
+
+# ---------------------------------------------------------------------------
+# Secrets (override via --set or a separate values-secrets.yaml / external secret manager)
+# ---------------------------------------------------------------------------
+secrets:
+  existingSecret: "" # Reference a pre-provisioned Secret instead of creating one from these values.
+  postgresPassword: "FoolishPassword"
+  supersetDbUser: "superset"
+  supersetDbPassword: "SupersetSecurePassword"
+  supersetSecretKey: "CHANGE_ME_TO_A_SECURE_RANDOM_KEY"
+  supersetAdminPassword: "CHANGE_ME_ADMIN_PASSWORD"
+  minioRootUser: "minioadmin"
+  minioRootPassword: "minioadmin"
+
+# ---------------------------------------------------------------------------
+# Ingress (only for externally-facing UIs; keep internal services ClusterIP)
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    ingestion: ingest.example.com
+    superset: superset.example.com
+    kafdrop: kafdrop.example.com
+    druidRouter: druid.example.com
+  tls: []

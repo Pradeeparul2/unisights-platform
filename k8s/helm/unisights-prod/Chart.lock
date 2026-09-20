@@ -1,0 +1,6 @@
+dependencies:
+- name: unisights
+  repository: file://../unisights
+  version: 0.1.0
+digest: sha256:ae2f54492aae2d4e78122670a2ebe4a1df3ced6184495bb40e1b78f79cf5781d
+generated: "2026-09-20T09:30:23.25587+05:30"

@@ -1,0 +1,60 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: unisights
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "unisights.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.hosts.ingestion }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: unisights-ingestion-service
+                port:
+                  number: {{ .Values.ingestionService.port }}
+    - host: {{ .Values.ingress.hosts.superset }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: unisights-superset
+                port:
+                  number: 8088
+    {{- if .Values.kafdrop.enabled }}
+    - host: {{ .Values.ingress.hosts.kafdrop }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: unisights-kafdrop
+                port:
+                  number: {{ .Values.kafdrop.serverPort }}
+    {{- end }}
+    - host: {{ .Values.ingress.hosts.druidRouter }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: unisights-druid-router
+                port:
+                  number: {{ (index .Values.druid.roles "router").port }}
+{{- end }}

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: unisights-prod
+description: Production deployment overlay for the Unisights analytics platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: unisights
+    version: 0.1.0
+    repository: file://../unisights

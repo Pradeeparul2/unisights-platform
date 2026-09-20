@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+# Create Superset user and database
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+    CREATE USER $SUPERSET_DB_USER WITH PASSWORD '$SUPERSET_DB_PASSWORD';
+    CREATE DATABASE druid;
+    CREATE DATABASE superset;
+    GRANT ALL PRIVILEGES ON DATABASE superset TO $SUPERSET_DB_USER;
+EOSQL

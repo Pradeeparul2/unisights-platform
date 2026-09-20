@@ -1,0 +1,9 @@
+Production deployment requirements
+
+1. Replace every REPLACE_WITH_* value in values.yaml with immutable image references and a valid StorageClass.
+2. Create {{ .Values.production.existingSecret }} in namespace {{ .Values.namespace }} before installing. It must provide:
+   POSTGRES_PASSWORD, SUPERSET_DB_USER, SUPERSET_DB_PASSWORD, SUPERSET_SECRET_KEY,
+   SUPERSET_ADMIN_PASSWORD, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD,
+   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY.
+3. Configure cert-manager and update the production hostnames/TLS secret.
+4. Back up PostgreSQL and object storage, and replace the bundled single-node Kafka/PostgreSQL/MinIO with managed or HA services for strict availability and durability requirements.

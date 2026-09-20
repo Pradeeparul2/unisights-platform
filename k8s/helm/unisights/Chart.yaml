@@ -1,0 +1,6 @@
+apiVersion: v2
+name: unisights
+description: Helm chart for the Unisights event ingestion & analytics stack (Kafka, Druid, MinIO, Postgres, ingestion-service, Superset, Kafdrop)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

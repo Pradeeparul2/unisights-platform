@@ -1,0 +1,163 @@
+{
+  "type": "kafka",
+  "spec": {
+    "ioConfig": {
+      "type": "kafka",
+      "consumerProperties": {
+        "bootstrap.servers": "unisights-kafka:9092"
+      },
+      "topic": "events-stream",
+      "inputFormat": {
+        "type": "json",
+        "flattenSpec": {
+          "useFieldDiscovery": true,
+          "fields": [
+            {
+              "type": "path",
+              "name": "event_name_nested",
+              "expr": "$.event_data.name"
+            },
+            {
+              "type": "path",
+              "name": "event_x",
+              "expr": "$.event_data.x"
+            },
+            {
+              "type": "path",
+              "name": "event_y",
+              "expr": "$.event_data.y"
+            },
+            {
+              "type": "path",
+              "name": "event_value",
+              "expr": "$.event_data.value"
+            },
+            {
+              "type": "path",
+              "name": "event_message",
+              "expr": "$.event_data.message"
+            },
+            {
+              "type": "path",
+              "name": "event_line",
+              "expr": "$.event_data.line"
+            },
+            {
+              "type": "path",
+              "name": "event_target",
+              "expr": "$.event_data.data.target"
+            },
+            {
+              "type": "path",
+              "name": "event_tag",
+              "expr": "$.event_data.data.tag"
+            },
+            {
+              "type": "path",
+              "name": "event_class",
+              "expr": "$.event_data.data.class"
+            },
+            {
+              "type": "path",
+              "name": "event_nested_count",
+              "expr": "$.event_data.data.count"
+            },
+            {
+              "type": "path",
+              "name": "geo_country",
+              "expr": "$.geo.country"
+            },
+            {
+              "type": "path",
+              "name": "geo_city",
+              "expr": "$.geo.city"
+            },
+            {
+              "type": "path",
+              "name": "geo_lat",
+              "expr": "$.geo.lat"
+            },
+            {
+              "type": "path",
+              "name": "geo_lon",
+              "expr": "$.geo.lon"
+            }
+          ]
+        }
+      },
+      "useEarliestOffset": true,
+      "taskCount": 1,
+      "taskDuration": "__TASK_DURATION__"
+    },
+    "tuningConfig": {
+      "type": "kafka",
+      "maxRowsPerSegment": 500000,
+      "intermediatePersistPeriod": "PT10M",
+      "logParseExceptions": true,
+      "maxParseExceptions": 1000,
+      "maxSavedParseExceptions": 10
+    },
+    "dataSchema": {
+      "dataSource": "events_stream_data",
+      "timestampSpec": {
+        "column": "received_at",
+        "format": "millis"
+      },
+      "transformSpec": {
+        "transforms": [
+          {
+            "type": "expression",
+            "name": "event_name",
+            "expression": "nvl(event_name, nvl(event_name_nested, event_type))"
+          }
+        ]
+      },
+      "dimensionsSpec": {
+        "dimensions": [
+          "event_id",
+          "event_type",
+          "event_name",
+          "event_data",
+          "event_timestamp",
+          "asset_id",
+          "session_id",
+          "page_url",
+          "event_x",
+          "event_y",
+          "event_target",
+          "event_tag",
+          "event_class",
+          "event_message",
+          "event_line",
+          "event_nested_count",
+          "event_value",
+          "geo_country",
+          "geo_city"
+        ]
+      },
+      "metricsSpec": [
+        {
+          "type": "count",
+          "name": "event_count"
+        },
+        {
+          "type": "doubleSum",
+          "name": "event_value_sum",
+          "fieldName": "event_value"
+        },
+        {
+          "type": "longSum",
+          "name": "event_nested_count_sum",
+          "fieldName": "event_nested_count"
+        }
+      ],
+      "granularitySpec": {
+        "type": "hashed",
+        "segmentGranularity": "hour",
+        "queryGranularity": "none",
+        "rollup": false,
+        "partitionDimensions": ["asset_id", "event_type"]
+      }
+    }
+  }
+}

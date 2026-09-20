@@ -1,0 +1,164 @@
+{
+  "type": "kafka",
+  "spec": {
+    "ioConfig": {
+      "type": "kafka",
+      "consumerProperties": {
+        "bootstrap.servers": "unisights-kafka:9092"
+      },
+      "topic": "sessions-stream",
+      "inputFormat": {
+        "type": "json",
+        "flattenSpec": {
+          "useFieldDiscovery": true,
+          "fields": [
+            {
+              "type": "path",
+              "name": "device_type",
+              "expr": "$.device.device_type"
+            },
+            {
+              "type": "path",
+              "name": "os",
+              "expr": "$.device.os"
+            },
+            {
+              "type": "path",
+              "name": "platform",
+              "expr": "$.device.platform"
+            },
+            {
+              "type": "path",
+              "name": "screen_width",
+              "expr": "$.device.screen_width"
+            },
+            {
+              "type": "path",
+              "name": "screen_height",
+              "expr": "$.device.screen_height"
+            },
+            {
+              "type": "path",
+              "name": "utm_source",
+              "expr": "$.utm.utm_source"
+            },
+            {
+              "type": "path",
+              "name": "utm_medium",
+              "expr": "$.utm.utm_medium"
+            },
+            {
+              "type": "path",
+              "name": "utm_campaign",
+              "expr": "$.utm.utm_campaign"
+            },
+            {
+              "type": "path",
+              "name": "utm_term",
+              "expr": "$.utm.utm_term"
+            },
+            {
+              "type": "path",
+              "name": "utm_content",
+              "expr": "$.utm.utm_content"
+            },
+            {
+              "type": "path",
+              "name": "geo_country",
+              "expr": "$.geo.country"
+            },
+            {
+              "type": "path",
+              "name": "geo_city",
+              "expr": "$.geo.city"
+            },
+            {
+              "type": "path",
+              "name": "geo_lat",
+              "expr": "$.geo.lat"
+            },
+            {
+              "type": "path",
+              "name": "geo_lon",
+              "expr": "$.geo.lon"
+            }
+          ]
+        }
+      },
+      "useEarliestOffset": true,
+      "taskCount": 1,
+      "taskDuration": "__TASK_DURATION__"
+    },
+    "tuningConfig": {
+      "type": "kafka",
+      "maxRowsPerSegment": 500000,
+      "intermediatePersistPeriod": "PT10M",
+      "logParseExceptions": true,
+      "maxParseExceptions": 1000,
+      "maxSavedParseExceptions": 10
+    },
+    "dataSchema": {
+      "dataSource": "sessions_stream_data",
+      "timestampSpec": {
+        "column": "received_at",
+        "format": "millis"
+      },
+      "transformSpec": {
+        "transforms": [
+          {
+            "type": "expression",
+            "name": "utm_combined",
+            "expression": "concat(nvl(utm_source,''), '_', nvl(utm_medium,''), '_', nvl(utm_campaign,''))"
+          }
+        ]
+      },
+      "dimensionsSpec": {
+        "dimensions": [
+          "asset_id",
+          "session_id",
+          "page_url",
+          "entry_page",
+          "exit_page",
+          "device_type",
+          "os",
+          "platform",
+          "screen_width",
+          "screen_height",
+          "utm_source",
+          "utm_medium",
+          "utm_campaign",
+          "utm_term",
+          "utm_content",
+          "geo_country",
+          "geo_city",
+          "geo_lat",
+          "geo_lon",
+          "user_agent"
+        ]
+      },
+      "metricsSpec": [
+        {
+          "type": "count",
+          "name": "session_count"
+        },
+        {
+          "type": "doubleSum",
+          "name": "scroll_depth",
+          "fieldName": "scroll_depth"
+        },
+        {
+          "type": "doubleSum",
+          "name": "time_on_page",
+          "fieldName": "time_on_page"
+        }
+      ],
+      "granularitySpec": {
+        "type": "hashed",
+        "segmentGranularity": "hour",
+        "queryGranularity": "none",
+        "rollup": false,
+        "partitionDimensions": ["asset_id", "session_id"]
+      }
+    }
+  }
+}

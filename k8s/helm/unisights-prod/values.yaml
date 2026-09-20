@@ -1,0 +1,150 @@
+# Production overlay. Do not put credentials in this file.
+# Create the Secret named below before installing, preferably with External Secrets.
+
+namespace: unisights-production
+
+production:
+  existingSecret: unisights-production-secrets
+  ingressClassName: nginx
+  hosts:
+    ingestion: ingest.example.com
+    superset: superset.example.com
+    druidRouter: druid.example.com
+  tlsSecretName: unisights-production-tls
+
+networkPolicy:
+  enabled: true
+
+podDisruptionBudget:
+  enabled: true
+
+resourceQuota:
+  enabled: true
+  requestsCpu: "12"
+  requestsMemory: 32Gi
+  limitsCpu: "24"
+  limitsMemory: 64Gi
+  persistentVolumeClaims: "20"
+
+unisights:
+  namespace: unisights-production
+  storageClass: "REPLACE_WITH_YOUR_STORAGE_CLASS"
+
+  image:
+    pullPolicy: IfNotPresent
+
+  secrets:
+    existingSecret: unisights-production-secrets
+
+  # The self-hosted stateful components in this dependency remain single-node.
+  # Replace Kafka, PostgreSQL, and S3-compatible storage with managed services
+  # before relying on this chart for HA/data-durability requirements.
+  kafka:
+    autoCreateTopics: "false"
+    storage:
+      size: 500Gi
+    resources:
+      requests: { cpu: "2", memory: 4Gi }
+      limits: { cpu: "4", memory: 8Gi }
+
+  kafdrop:
+    enabled: false
+
+  zookeeper:
+    storage:
+      size: 50Gi
+    resources:
+      requests: { cpu: "1", memory: 2Gi }
+      limits: { cpu: "2", memory: 4Gi }
+
+  postgres:
+    storage:
+      size: 200Gi
+    resources:
+      requests: { cpu: "1", memory: 2Gi }
+      limits: { cpu: "2", memory: 4Gi }
+
+  minio:
+    storage:
+      size: 1Ti
+    resources:
+      requests: { cpu: "1", memory: 2Gi }
+      limits: { cpu: "2", memory: 4Gi }
+
+  druid:
+    supervisorTaskDuration: "PT1H"
+    indexer:
+      taskCapacity: 4
+      javaOptsArray: '["-server", "-Xmx1g", "-Xms1g", "-XX:MaxDirectMemorySize=1g", "-Duser.timezone=UTC", "-Dfile.encoding=UTF-8", "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"]'
+      processingBufferSize: 128MiB
+    roles:
+      coordinator:
+        resources:
+          requests: { cpu: "1", memory: 2Gi }
+          limits: { cpu: "2", memory: 4Gi }
+      broker:
+        replicas: 2
+        resources:
+          requests: { cpu: "2", memory: 4Gi }
+          limits: { cpu: "4", memory: 8Gi }
+      historical:
+        replicas: 2
+        storageSize: 500Gi
+        resources:
+          requests: { cpu: "2", memory: 6Gi }
+          limits: { cpu: "4", memory: 12Gi }
+      middlemanager:
+        replicas: 3
+        storageSize: 100Gi
+        resources:
+          requests: { cpu: "2", memory: 4Gi }
+          limits: { cpu: "4", memory: 8Gi }
+      router:
+        replicas: 2
+        resources:
+          requests: { cpu: "1", memory: 2Gi }
+          limits: { cpu: "2", memory: 4Gi }
+
+  ingestionService:
+    replicas: 3
+    image:
+      repository: "REPLACE_WITH_REGISTRY/ingestion-service"
+      tag: "REPLACE_WITH_IMMUTABLE_TAG"
+    resources:
+      requests: { cpu: "500m", memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 12
+      targetCPUUtilizationPercentage: 70
+
+  superset:
+    image: "REPLACE_WITH_REGISTRY/unisights-superset:REPLACE_WITH_IMMUTABLE_TAG"
+    storage:
+      size: 50Gi
+    resources:
+      requests: { cpu: "1", memory: 2Gi }
+      limits: { cpu: "2", memory: 4Gi }
+    dashboard:
+      enabled: false
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: 2m
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      ingestion: ingest.example.com
+      superset: superset.example.com
+      kafdrop: disabled.example.invalid
+      druidRouter: druid.example.com
+    tls:
+      - secretName: unisights-production-tls
+        hosts:
+          - ingest.example.com
+          - superset.example.com
+          - druid.example.com

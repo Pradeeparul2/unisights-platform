@@ -25,6 +25,11 @@ applications while keeping data ownership with the operator.
 - `docker/druid/supervisor_specs/`: Druid Kafka ingestion specifications.
 - `docker/flink/`: Flink session aggregation prototype. Flink services are
   currently disabled in Compose.
+- `k8s/helm/unisights/`: Helm chart for local Kubernetes and integration
+  testing.
+- `k8s/helm/unisights-prod/`: Production deployment overlay with external
+  secrets, TLS ingress, autoscaling, resource guardrails, disruption budgets,
+  and network policies.
 
 ## Architecture
 
@@ -80,6 +85,29 @@ For service-specific setup, configuration, API details, and troubleshooting,
 see [docker/README.md](docker/README.md) and
 [ingestion-service/README.md](ingestion-service/README.md).
 
+## Kubernetes
+
+Use the local Helm chart for minikube, kind, or development clusters. It
+includes the complete self-hosted stack and is intended for integration testing:
+
+```powershell
+helm dependency build .\k8s\helm\unisights
+helm lint .\k8s\helm\unisights
+```
+
+For production deployment, use the separate production overlay. It requires
+immutable images, a pre-provisioned external Secret, TLS/DNS infrastructure,
+and a production StorageClass:
+
+```powershell
+helm dependency build .\k8s\helm\unisights-prod
+helm lint .\k8s\helm\unisights-prod
+```
+
+See the [local Kubernetes chart guide](k8s/helm/unisights/README.md) and the
+[production Kubernetes guide](k8s/helm/unisights-prod/README.md) for required
+values, validation, and install commands.
+
 ## Local Ingestion Development
 
 From `ingestion-service/`, install the Python dependencies and run the service
@@ -104,6 +132,10 @@ python -m pytest -q
   configuration, and troubleshooting.
 - [Ingestion service guide](ingestion-service/README.md): local development,
   API behavior, configuration, and tests.
+- [Local Kubernetes chart guide](k8s/helm/unisights/README.md): Helm values,
+  local cluster deployment, and service access.
+- [Production Kubernetes guide](k8s/helm/unisights-prod/README.md): production
+  prerequisites, secret contract, deployment, and HA work.
 
 ## Data and Privacy
 
@@ -117,8 +149,9 @@ service privacy documentation before deploying with real user data.
 The Docker configuration is intended for local development. Replace all
 development passwords, MinIO keys, and Superset secret keys before using the
 stack outside a private local environment. Do not commit production secrets or
-expose Kafka, PostgreSQL, MinIO, Druid, or Superset directly to the public
-internet.
+expose Kafka, PostgreSQL, MinIO, Druid coordinator/broker, or an unauthenticated
+Superset instance directly to the public internet. Use the production Helm
+overlay with TLS ingress and externally managed secrets for cluster deployment.
 
 ## Repository Status
 
